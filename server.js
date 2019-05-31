@@ -28,6 +28,21 @@ var serverState = {
 };
 
 let childRoscore;
+var connectedClient = 0;
+
+
+const emitMappingStatus = async socket => {
+
+    try {
+        socket.emit("ServerState", serverState.mappingRunning);
+        socket.broadcast.emit("ServerState", serverState.mappingRunning);
+        console.log("timer callback 1000ms");
+    } catch (error) {
+        console.error(`Error: ${error.code}`);
+    }
+    // res.send({ express: 'hello from backend!' });
+
+};
 
 io.on("connection", socket => {
     console.log("New client connected");
@@ -48,6 +63,10 @@ io.on("connection", socket => {
             childRoscore = spawn("roscore");
             serverState.mappingRunning = true;
             serverState.runRoscore = true;
+            
+            // socket.emit("ServerState", serverState.mappingRunning);
+            // socket.broadcast.emit("ServerState", serverState.mappingRunning);
+            
             console.log(`pid: ${childRoscore.pid}`);         
         }else{
 
@@ -58,9 +77,20 @@ io.on("connection", socket => {
             childRoscore.kill();
             serverState.mappingRunning = false;
             serverState.runRoscore = false;
+            
+            // socket.emit("ServerState", serverState.mappingRunning);
+            // socket.broadcast.emit("ServerState", serverState.mappingRunning);
+            
+        
         }
     });
 
+    if(connectedClient == 0){
+        setInterval( ()=>emitMappingStatus(socket),1000);
+        connectedClient=connectedClient+1;
+    } else {
+        connectedClient=connectedClient+1;
+    }
     // socket.one("mappingStopped", function (data) {
 
     // });
@@ -68,10 +98,5 @@ io.on("connection", socket => {
     socket.on("disconnect", () => console.log("client disconnected"));
 });
 
-const getApiAndEmit = async socket => {
-
-    // res.send({ express: 'hello from backend!' });
-    // socket.emit("FromAPI", myObject);
-};
 
 server.listen(port, () => console.log(`Listening on port ${port}`));
