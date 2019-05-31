@@ -26,12 +26,15 @@ import FolderIcon from '@material-ui/icons/Folder';
 import MappingIcon from '@material-ui/icons/FlightTakeoff';
 import AboutIcon from '@material-ui/icons/Help';
 
+import DialogContentStd from '@material-ui/core/DialogContent';
+
 import FabOne from './fab';
 import DialogContent from './dialog'
 import DialogButton from './dialogButton'
 import Timeline from './timeline'
 
 import socketIOClient from "socket.io-client"
+import { DialogContentText } from '@material-ui/core';
 
 
 const drawerAppBarStyle = {
@@ -87,11 +90,19 @@ const styles = theme => ({
 var abcdefg = 1;
 let socket;
 let childState = {
-  projectName: "b",
+  projectName: "projectNameSTD",
   saveTo: "",
   azimuth: "",
 }; 
 
+var serverState = {
+  mappingRunning: false,
+  runRoscore: false,
+  runTrajectoryLogger: false,
+  runLidarMapper: false,
+  withRecord: false,
+  withRTmapping: false,
+};
 
 class App extends React.Component {
 
@@ -104,11 +115,12 @@ class App extends React.Component {
     response: '',
     endpoint: "http://127.0.0.1:5000"
   };
-
+  
   componentDidMount() {
     const { endpoint } = this.state;
     socket = socketIOClient(endpoint);
     socket.on("FromAPI", data => ( this.setState({ response: data })) );
+    socket.on("ServerState", data => (this.setState({ mappingRunning: data})) );
   }
 
   drawerToggleHandler = () => {
@@ -137,7 +149,7 @@ class App extends React.Component {
       this.setState({ startDialogPhase: true});
     else{
       this.setState({ mappingRunning: true});
-      socket.emit("mappingStart", this.state.startDialogPhase);
+      socket.emit("mappingStart", true);
       this.setState({ startDialogOpen: false});  
     }    
   };
@@ -148,6 +160,13 @@ class App extends React.Component {
 
   stopDialogCloseHandler = () => {
     this.setState({ stopDialogOpen: false});
+  };
+
+  stopDialogClickHandler = () => {
+
+    this.setState({ mappingRunning: false});
+    socket.emit("mappingStart", false);
+    this.setState({ stopDialogOpen: false});  
   };
 
   textFieldUpdateHandler(objBuff){
@@ -226,7 +245,7 @@ class App extends React.Component {
             </TypoGraphy>
             <p>{abcdefg}</p>
             <p>{response}</p>
-            <p>{childState.projectName}</p>       
+            <p>{childState.saveTo}</p>       
 
           </Toolbar>
         </AppBar>
@@ -285,8 +304,23 @@ class App extends React.Component {
           aria-labelledby="form-dialog-title"
         >
           <DialogTitle id="form-dialog-title">Stop Recording</DialogTitle>
-          <DialogContent dialogState={this.state.startDialogPhase}/> 
-          {/* TODO */}
+          {/* <DialogContent dialogState={this.state.startDialogPhase}/>  */}
+          <DialogContentStd>
+            <DialogContentText>
+              <TypoGraphy paragraph>
+              Are you sure to stop mapping process ?    
+              </TypoGraphy>
+            </DialogContentText>
+          </DialogContentStd>
+
+          <DialogActions>
+            <ButtonUI onClick={this.stopDialogCloseHandler} color="primary">
+              Cancel
+            </ButtonUI>
+            <ButtonUI variant="contained" onClick={this.stopDialogClickHandler} color="primary">
+              YES
+            </ButtonUI>
+          </DialogActions>
         </Dialog>            
                   
 

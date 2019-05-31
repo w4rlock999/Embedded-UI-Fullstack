@@ -11,15 +11,18 @@ class dialogContentRender extends React.Component {
     
 
     state = {
-        projectName: "ldxxx",
+        projectName: "projectNameSTD",
         saveTo: "~/simpanBag/",
         azimuth: "30",
     }
 
     handleChange = name => event => {
        
-        this.setState({ [name]: event.target.value });
-        this.props.TextFieldUpdate(this.state);
+        this.setState({ 
+        [name]: event.target.value }, 
+        function () {
+            this.props.TextFieldUpdate(this.state);
+        });
     };
 
     mappingDialog1 = () => {
@@ -39,6 +42,7 @@ class dialogContentRender extends React.Component {
                     id="saveto"
                     label="Save To"
                     value={this.state.saveTo}
+                    onChange={this.handleChange("saveTo")}
                     fullWidth
                 />
                 <FormGroup column>
@@ -87,10 +91,13 @@ class dialogContentRender extends React.Component {
     render() {
         
         if (!this.props.dialogState) {
+            console.log("this is console log");    
             return this.mappingDialog1() ;
         } else {
+            console.log("this is console log");
             return this.mappingDialog2();
-        }                     
+        }    
+        
     }
 
 }
