@@ -27,7 +27,15 @@ var serverState = {
     withRTmapping: false,
 };
 
+var clientState = {
+    projectName: "",
+    saveTo: "",
+    azimuth: "",
+    recordBag: true,
+    realtimeMapping: true
+};
 let childRoscore;
+
 var connectedClient = 0;
 
 
@@ -51,6 +59,16 @@ io.on("connection", socket => {
 
     socket.on("frontInput", function (data) {
         console.log(data);
+    });
+
+    socket.on("clientRequestParams", function (data) {
+        clientState = data;
+        console.log(`params received`);
+        console.log(`project name ${clientState.projectName}`);
+        console.log(`save to ${clientState.saveTo}`);
+        console.log(`record bag ${clientState.recordBag}`);
+        console.log(`RT mapping ${clientState.realtimeMapping}`);
+        console.log(`azimuth ${clientState.azimuth}`);
     });
 
     socket.on("mappingStart", function (data) {
@@ -80,8 +98,7 @@ io.on("connection", socket => {
             
             // socket.emit("ServerState", serverState.mappingRunning);
             // socket.broadcast.emit("ServerState", serverState.mappingRunning);
-            
-        
+
         }
     });
 

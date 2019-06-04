@@ -14,12 +14,23 @@ class dialogContentRender extends React.Component {
         projectName: "projectNameSTD",
         saveTo: "~/simpanBag/",
         azimuth: "30",
+        recordBag: true,
+        realtimeMapping: true
     }
 
     handleChange = name => event => {
        
         this.setState({ 
         [name]: event.target.value }, 
+        function () {
+            this.props.TextFieldUpdate(this.state);
+        });
+    };
+
+    handleCheckboxChange = name => event => {
+       
+        this.setState({ 
+        [name]: event.target.checked }, 
         function () {
             this.props.TextFieldUpdate(this.state);
         });
@@ -49,9 +60,9 @@ class dialogContentRender extends React.Component {
                 <FormControlLabel
                     control={
                     <Checkbox
-                        // checked={this.state.checkedA}
-                        // onChange={this.handleChange('checkedA')}
-                        value="true"
+                        checked={this.state.recordBag}
+                        onChange={this.handleCheckboxChange('recordBag')}
+                        // value={this.state.recordBag}
                     />
                     }
                     label="Record .bag"
@@ -59,9 +70,9 @@ class dialogContentRender extends React.Component {
                 <FormControlLabel
                     control={
                     <Checkbox
-                        // checked={this.state.checkedA}
-                        // onChange={this.handleChange('checkedA')}
-                        value="true"
+                        checked={this.state.realtimeMapping}
+                        onChange={this.handleCheckboxChange('realtimeMapping')}
+                        // value={this.state.realtimeMapping}
                     />
                     }
                     label="Real-Time Mapping"
@@ -81,6 +92,7 @@ class dialogContentRender extends React.Component {
                     id="azimuth"
                     label="On-Site Azimuth"
                     value={this.state.azimuth}
+                    onChange={this.handleChange('azimuth')}
                     fullWidth
                 />
             </DialogContent>

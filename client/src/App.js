@@ -86,13 +86,15 @@ const styles = theme => ({
   
 });
 
-
 var abcdefg = 1;
 let socket;
+
 let childState = {
   projectName: "projectNameSTD",
-  saveTo: "",
-  azimuth: "",
+  saveTo: "~/simpanBag/",
+  azimuth: "30",
+  recordBag: true,
+  realtimeMapping: true
 }; 
 
 var serverState = {
@@ -149,6 +151,7 @@ class App extends React.Component {
       this.setState({ startDialogPhase: true});
     else{
       this.setState({ mappingRunning: true});
+      socket.emit("clientRequestParams", childState);
       socket.emit("mappingStart", true);
       this.setState({ startDialogOpen: false});  
     }    
@@ -213,6 +216,7 @@ class App extends React.Component {
       </div>    
     );
 
+    const realtimeMapping = childState.realtimeMapping;  
 
     return (
       <div className={classes.root}>
@@ -245,7 +249,15 @@ class App extends React.Component {
             </TypoGraphy>
             <p>{abcdefg}</p>
             <p>{response}</p>
-            <p>{childState.saveTo}</p>       
+            <p>{childState.saveTo}</p>
+            <p> RTmapping {childState.realtimeMapping ? 'True' : 'False' } </p>
+            <div>
+              <p>
+                record bag 
+                {childState.recordBag ? 'True' : 'False'}
+              </p>
+            </div>
+            {/* <renderIfElse conditional={true} /> */}
 
           </Toolbar>
         </AppBar>
