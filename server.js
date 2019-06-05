@@ -38,13 +38,21 @@ var clientState = {
     recordBag: true,
     realtimeMapping: true
 };
+
 let childRoscore;
+let childBagPlayer; //sementara, ganti dengan mapping launch file
+let childMapperLauncher;
 let childTrajectoryLogger;
 let childLidarMapping;
 let childSaveMapped;
 let childRecordBag;
 
 var connectedClient = 0;
+
+// childBagPlayer.stdout.on('data', function(data) {
+//     process.stdout.write(data.toString());
+// });
+// console.log('see any message yet?');
 
 function ros_topics_listener() {
     // Register node with ROS master
@@ -75,7 +83,6 @@ function ros_topics_listener() {
         );
       });
 }
-
 
 // if (require.main === module) {
 //     // Invoke Main Listener Function
@@ -110,7 +117,6 @@ const timerCallback = async socket => {
         console.log("system not ready, missing some topic(s)")
     }
 
-    // res.send({ express: 'hello from backend!' });
 };
 
 io.on("connection", socket => {
@@ -135,26 +141,19 @@ io.on("connection", socket => {
     socket.on("mappingStart", function (data) {
         if(data == true) {
 
-            myObject = 'new data';
-            socket.emit("FromAPI", myObject);
-            socket.broadcast.emit("FromAPI", myObject);
             console.log("client send mappingStart: " + data);
-            // childRoscore = spawn("roscore");
+            childBagPlayer = spawn('rosbag',['play', '/home/w4rlock999/Downloads/2019-04-12-21-02-09.bag']);
             serverState.mappingRunning = true;
-            // serverState.runRoscore = true;
-            
-            // socket.emit("ServerState", serverState.mappingRunning);
-            // socket.broadcast.emit("ServerState", serverState.mappingRunning);
-            
-            // console.log(`pid: ${childRoscore.pid}`);         
+         
         }else{
 
             myObject = 'mapping stopped';
             socket.emit("FromAPI", myObject);
             socket.broadcast.emit("FromAPI", myObject);
             console.log("client terminated process, mappingStart: " + data);
-            // childRoscore.kill();
             
+            childBagPlayer.kill();
+
             serverState.mappingRunning = false;
             // serverState.runRoscore = false;
             serverState.gpsPositionOK = false;
@@ -163,8 +162,6 @@ io.on("connection", socket => {
             serverState.runLidarMapper = false;
             serverState.withRecord = false;
             serverState.withRTmapping = false;
-            // socket.emit("ServerState", serverState.mappingRunning);
-            // socket.broadcast.emit("ServerState", serverState.mappingRunning);
 
         }
     });
@@ -175,9 +172,6 @@ io.on("connection", socket => {
     } else {
         connectedClient=connectedClient+1;
     }
-    // socket.one("mappingStopped", function (data) {
-
-    // });
 
     socket.on("disconnect", () => console.log("client disconnected"));
 });
