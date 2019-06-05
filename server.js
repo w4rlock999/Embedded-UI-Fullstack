@@ -6,6 +6,10 @@ var spawn = require('child_process').spawn;
 
 // const bodyParser = require('body-parser');
 
+const rosnodejs = require('rosnodejs');
+const std_msgs = rosnodejs.require('std_msgs').msg;
+const ekf_nav = rosnodejs.require('sbg_driver').msg;
+
 const app = express();
 const port = process.env.PORT || 5000;
 const index = require("./routes/index");
@@ -15,7 +19,6 @@ app.use(index);
 const server = http.createServer(app);
 const io = socketIo(server);
 
-
 var myObject = 'helloW';
 
 var serverState = {
@@ -24,7 +27,7 @@ var serverState = {
     runTrajectoryLogger: false,
     runLidarMapper: false,
     withRecord: false,
-    withRTmapping: false,
+    withRTmapping: false
 };
 
 var clientState = {
@@ -51,6 +54,24 @@ const emitMappingStatus = async socket => {
     // res.send({ express: 'hello from backend!' });
 
 };
+
+function listener() {
+    // Register node with ROS master
+    rosnodejs.initNode('/listener_node')
+      .then((rosNode) => {
+        // Create ROS subscriber on the 'chatter' topic expecting String messages
+        let sub = rosNode.subscribe('/ekf_nav', ekf_nav.SbgEkfNav,
+          (data) => { // define callback execution
+            rosnodejs.log.info('I heard: [' + data.position.x + ']');
+          }
+        );
+      });
+}
+
+if (require.main === module) {
+    // Invoke Main Listener Function
+    listener();
+}
 
 io.on("connection", socket => {
     console.log("New client connected");
