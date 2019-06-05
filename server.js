@@ -4,8 +4,6 @@ const socketIo = require('socket.io');
 var exec = require('child_process').exec;
 var spawn = require('child_process').spawn;
 
-// const bodyParser = require('body-parser');
-
 const rosnodejs = require('rosnodejs');
 const std_msgs = rosnodejs.require('std_msgs').msg;
 const ekf_nav = rosnodejs.require('sbg_driver').msg;
@@ -41,32 +39,12 @@ var clientState = {
     realtimeMapping: true
 };
 let childRoscore;
+let childTrajectoryLogger;
+let childLidarMapping;
+let childSaveMapped;
+let childRecordBag;
 
 var connectedClient = 0;
-
-
-// function ekf_nav_listener() {
-//     // Register node with ROS master
-//     rosnodejs.initNode('/listener_node')
-//       .then((rosNode) => {
-//         // Create ROS subscriber on the 'chatter' topic expecting String messages
-//         let sub = rosNode.subscribe('/ekf_nav', ekf_nav.SbgEkfNav,
-//           (data) => { // define callback execution
-//             // rosnodejs.log.info('I heard: [' + data.status.gps1_pos_used + ']');
-//             if(data.status.gps1_pos_used && !serverState.gpsPositionOK){
-//                 // socket.emit('gpsPositionOK', true);
-//                 serverState.gpsPositionOK = true;    
-//                 rosnodejs.log.info('Status gps position is True!');
-//             }else 
-//             if(!data.status.gps1_pos_used && serverState.gpsPositionOK){
-//                 // socket.emit('gpsPositionOK', false);
-//                 serverState.gpsPositionOK = false;    
-//                 rosnodejs.log.info('Status gps position is False!');
-//             }
-//           }
-//         );
-//       });
-// }
 
 function ros_topics_listener() {
     // Register node with ROS master
@@ -79,7 +57,7 @@ function ros_topics_listener() {
             if(data.status.gps1_pos_used && !serverState.gpsPositionOK){
                 serverState.gpsPositionOK = true;    
                 rosnodejs.log.info('Status gps position is True!');
-            }else 
+            }else //below cannot be executed on roscore termination bcs no incoming data after. 
             if(!data.status.gps1_pos_used && serverState.gpsPositionOK){
                 serverState.gpsPositionOK = false;    
                 rosnodejs.log.info('Status gps position is False!');
@@ -99,13 +77,17 @@ function ros_topics_listener() {
 }
 
 
-if (require.main === module) {
-    // Invoke Main Listener Function
-    // ekf_nav_listener();
-    ros_topics_listener();
-}
+// if (require.main === module) {
+//     // Invoke Main Listener Function
+//     // ekf_nav_listener();
+    
+// }
 
-const emitMappingStatus = async socket => {
+const timerCallback = async socket => {
+
+    if(!serverState.mappingRunning){
+        ros_topics_listener();
+    }
 
     try {
         socket.emit("ServerState", serverState.mappingRunning);
@@ -117,12 +99,17 @@ const emitMappingStatus = async socket => {
         socket.emit("lidarDataOK", serverState.lidarDataOK);
         socket.broadcast.emit("lidarDataOK", serverState.lidarDataOK);
 
-
-
         console.log("timer callback 1000ms");
     } catch (error) {
         console.error(`Error: ${error.code}`);
     }
+
+    if(serverState.lidarDataOK && serverState.gpsPositionOK){
+        console.log("position OK, Lidar OK, Now start trajectory logging & mapping");
+    }else{
+        console.log("system not ready, missing some topic(s)")
+    }
+
     // res.send({ express: 'hello from backend!' });
 };
 
@@ -152,24 +139,30 @@ io.on("connection", socket => {
             socket.emit("FromAPI", myObject);
             socket.broadcast.emit("FromAPI", myObject);
             console.log("client send mappingStart: " + data);
-            childRoscore = spawn("roscore");
+            // childRoscore = spawn("roscore");
             serverState.mappingRunning = true;
-            serverState.runRoscore = true;
+            // serverState.runRoscore = true;
             
             // socket.emit("ServerState", serverState.mappingRunning);
             // socket.broadcast.emit("ServerState", serverState.mappingRunning);
             
-            console.log(`pid: ${childRoscore.pid}`);         
+            // console.log(`pid: ${childRoscore.pid}`);         
         }else{
 
             myObject = 'mapping stopped';
             socket.emit("FromAPI", myObject);
             socket.broadcast.emit("FromAPI", myObject);
             console.log("client terminated process, mappingStart: " + data);
-            childRoscore.kill();
-            serverState.mappingRunning = false;
-            serverState.runRoscore = false;
+            // childRoscore.kill();
             
+            serverState.mappingRunning = false;
+            // serverState.runRoscore = false;
+            serverState.gpsPositionOK = false;
+            serverState.lidarDataOK = false;
+            serverState.runTrajectoryLogger = false;
+            serverState.runLidarMapper = false;
+            serverState.withRecord = false;
+            serverState.withRTmapping = false;
             // socket.emit("ServerState", serverState.mappingRunning);
             // socket.broadcast.emit("ServerState", serverState.mappingRunning);
 
@@ -177,7 +170,7 @@ io.on("connection", socket => {
     });
 
     if(connectedClient == 0){
-        setInterval( ()=>emitMappingStatus(socket),1000);
+        setInterval( ()=>timerCallback(socket),1000);
         connectedClient=connectedClient+1;
     } else {
         connectedClient=connectedClient+1;
