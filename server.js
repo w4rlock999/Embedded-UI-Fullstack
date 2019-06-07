@@ -13,6 +13,8 @@ const app = express();
 const port = process.env.PORT || 5000;
 const index = require("./routes/index");
 
+var psTree = require('ps-tree');
+
 app.use(index);
 
 const server = http.createServer(app);
@@ -49,10 +51,29 @@ let childRecordBag;
 
 var connectedClient = 0;
 
-// childBagPlayer.stdout.on('data', function(data) {
-//     process.stdout.write(data.toString());
-// });
-// console.log('see any message yet?');
+var kill = function (pid, signal, callback) {
+    signal = signal || 'SIGKILL'
+    callback = callback || function () {};
+    var killTree = true;
+    if (killTree) {
+        psTree(pid, function (err, children) {
+            [pid].concat(
+                children.map(function (p) {
+                    return p.PID;
+                })
+            ).forEach(function (tpid) {
+                try { process.kill(tpid, signal) }
+                catch (ex) { }
+            });
+            callback();
+        });
+    } else {
+        try { process.kill(pid, signal) }
+        catch (ex) { }
+        callback();
+    }
+};
+
 
 function ros_topics_listener() {
     // Register node with ROS master
@@ -142,7 +163,11 @@ io.on("connection", socket => {
         if(data == true) {
 
             console.log("client send mappingStart: " + data);
-            childBagPlayer = spawn('rosbag',['play', '/home/w4rlock999/Downloads/2019-04-12-21-02-09.bag']);
+            // childBagPlayer = spawn('rosbag',['play', '/home/w4rlock999/Downloads/2019-04-12-21-02-09.bag']);
+            childBagPlayer = exec('rosbag play /home/w4rlock999/Downloads/2019-04-12-21-02-09.bag',{
+                        silent: true, 
+                        async: true
+            });
             serverState.mappingRunning = true;
          
         }else{
@@ -152,7 +177,9 @@ io.on("connection", socket => {
             socket.broadcast.emit("FromAPI", myObject);
             console.log("client terminated process, mappingStart: " + data);
             
-            childBagPlayer.kill();
+            // childBagPlayer.kill('SIGINT');
+
+            kill(childBagPlayer.pid);
 
             serverState.mappingRunning = false;
             // serverState.runRoscore = false;
