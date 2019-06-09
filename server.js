@@ -163,11 +163,13 @@ io.on("connection", socket => {
         if(data == true) {
 
             console.log("client send mappingStart: " + data);
-            // childBagPlayer = spawn('rosbag',['play', '/home/w4rlock999/Downloads/2019-04-12-21-02-09.bag']);
-            childBagPlayer = exec('rosbag play /home/w4rlock999/Downloads/2019-04-12-21-02-09.bag',{
-                        silent: true, 
-                        async: true
+            childBagPlayer = spawn('rosbag',['play', '/home/w4rlock999/Downloads/2019-04-12-21-02-09.bag', '--clock'], {
+                stdio: 'ignore'
             });
+            // childBagPlayer = exec('rosbag play /home/w4rlock999/Downloads/2019-04-12-21-02-09.bag',{
+            //             silent: true, 
+            //             async: true
+            // });
             serverState.mappingRunning = true;
          
         }else{
@@ -177,9 +179,8 @@ io.on("connection", socket => {
             socket.broadcast.emit("FromAPI", myObject);
             console.log("client terminated process, mappingStart: " + data);
             
-            // childBagPlayer.kill('SIGINT');
-
-            kill(childBagPlayer.pid);
+            childBagPlayer.kill();
+            // kill(childBagPlayer.pid);
 
             serverState.mappingRunning = false;
             // serverState.runRoscore = false;
