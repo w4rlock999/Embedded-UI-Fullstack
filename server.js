@@ -105,17 +105,15 @@ function ros_topics_listener() {
       });
 }
 
-// if (require.main === module) {
-//     // Invoke Main Listener Function
-//     // ekf_nav_listener();
-    
-// }
+if (require.main === module) {
+    // Invoke Main Listener Function
+    ros_topics_listener();   
+}
 
 const timerCallback = async socket => {
 
-    if(!serverState.mappingRunning){
-        ros_topics_listener();
-    }
+    // if(!serverState.mappingRunning){
+    // }
 
     try {
         socket.emit("ServerState", serverState.mappingRunning);
@@ -134,6 +132,23 @@ const timerCallback = async socket => {
 
     if(serverState.lidarDataOK && serverState.gpsPositionOK){
         console.log("position OK, Lidar OK, Now start trajectory logging & mapping");
+        
+        if(!serverState.runTrajectoryLogger){
+            childTrajectoryLogger = spawn('rosrun', ['trajectory_logger', 'trajectory_logger'], {
+                stdio: 'ignore'
+            });
+            
+            serverState.runTrajectoryLogger = true;
+        }
+
+        if(!serverState.runLidarMapper){
+            childLidarMapping = spawn('rosrun', ['trajectory_logger', 'lidar_mapper'], {
+                stdio: 'ignore'
+            });
+
+            serverState.runLidarMapper = true;
+        }
+
     }else{
         console.log("system not ready, missing some topic(s)")
     }
@@ -170,6 +185,7 @@ io.on("connection", socket => {
             //             silent: true, 
             //             async: true
             // });
+
             serverState.mappingRunning = true;
          
         }else{
@@ -178,10 +194,13 @@ io.on("connection", socket => {
             socket.emit("FromAPI", myObject);
             socket.broadcast.emit("FromAPI", myObject);
             console.log("client terminated process, mappingStart: " + data);
-            
-            childBagPlayer.kill();
-            // kill(childBagPlayer.pid);
 
+            childLidarMapping.kill();
+            childTrajectoryLogger.kill();           
+            childBagPlayer.kill(); //if using spawn
+            // kill(childBagPlayer.pid); //if using exec
+
+ 
             serverState.mappingRunning = false;
             // serverState.runRoscore = false;
             serverState.gpsPositionOK = false;
