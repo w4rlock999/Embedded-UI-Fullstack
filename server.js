@@ -3,25 +3,19 @@ const http = require('http');
 const socketIo = require('socket.io');
 var exec = require('child_process').exec;
 var spawn = require('child_process').spawn;
-
 const rosnodejs = require('rosnodejs');
 const std_msgs = rosnodejs.require('std_msgs').msg;
 const ekf_nav = rosnodejs.require('sbg_driver').msg;
 const sensor_msgs = rosnodejs.require('sensor_msgs').msg;
-
 const app = express();
 const port = process.env.PORT || 5000;
 const index = require("./routes/index");
-
 var psTree = require('ps-tree');
-
 app.use(index);
-
 const server = http.createServer(app);
 const io = socketIo(server);
 
 var myObject = 'helloW';
-
 var serverState = {
     mappingRunning: false,
     runRoscore: false,
@@ -32,7 +26,6 @@ var serverState = {
     withRecord: false,
     withRTmapping: false
 };
-
 var clientState = {
     projectName: "",
     saveTo: "",
@@ -112,9 +105,6 @@ if (require.main === module) {
 
 const timerCallback = async socket => {
 
-    // if(!serverState.mappingRunning){
-    // }
-
     try {
         socket.emit("ServerState", serverState.mappingRunning);
         socket.broadcast.emit("ServerState", serverState.mappingRunning);
@@ -148,6 +138,10 @@ const timerCallback = async socket => {
 
             serverState.runLidarMapper = true;
         }
+
+        // if(clientState.recordBag && serverState.withRecord){
+        //     childRecordBag = spawn('bash', ['~/Workspace/web/onemap-fullstack/record.bash']);
+        // }
 
     }else{
         console.log("system not ready, missing some topic(s)")
@@ -199,7 +193,6 @@ io.on("connection", socket => {
             childTrajectoryLogger.kill();           
             childBagPlayer.kill(); //if using spawn
             // kill(childBagPlayer.pid); //if using exec
-
  
             serverState.mappingRunning = false;
             // serverState.runRoscore = false;

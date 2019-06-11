@@ -81,12 +81,10 @@ const styles = theme => ({
     [theme.breakpoints.up('sm')]: {
       marginLeft: 30,
     },
-
   },
-  
 });
 
-var abcdefg = 1;
+
 let socket;
 
 let childState = {
@@ -123,7 +121,7 @@ class App extends React.Component {
     socket = socketIOClient(endpoint);
     socket.on("FromAPI", data => ( this.setState({ response: data })) );
     socket.on("ServerState", data => (this.setState({ mappingRunning: data})) );
-  }
+  };
 
   drawerToggleHandler = () => {
     this.setState(state => ({ mobileOpen: !state.mobileOpen }));
@@ -134,8 +132,7 @@ class App extends React.Component {
       this.setState({ startDialogPhase: false});
       this.setState({ startDialogOpen: true});
 
-      abcdefg+=1;
-      socket.emit("frontInput", abcdefg+1);
+      socket.emit("frontInput", 999);
   };
 
   stopDialogOpenHandler = () => {
@@ -154,7 +151,7 @@ class App extends React.Component {
       socket.emit("clientRequestParams", childState);
       socket.emit("mappingStart", true);
       this.setState({ startDialogOpen: false});  
-    }    
+    };    
   };
 
   startDialogCloseHandler = () => {
@@ -193,6 +190,7 @@ class App extends React.Component {
             </TypoGraphy>           
           </Toolbar>
         </AppBar>
+      
         <List>
             <ListItem button>
               <ListItemIcon>
@@ -216,17 +214,10 @@ class App extends React.Component {
       </div>    
     );
 
-    const realtimeMapping = childState.realtimeMapping;  
-
     return (
       <div className={classes.root}>
         <CssBaseline/>
         <AppBar className={classes.appBar} position="fixed">
-          {/* <Toolbar style={titleStyle}>
-                   
-            {/* <NavBar />   */}
-          {/* </Toolbar> */} 
-          
           <Toolbar >
 
             <IconButton color="inherit"
@@ -247,7 +238,6 @@ class App extends React.Component {
             >
             {/* ///alpha */}
             </TypoGraphy>
-            <p>{abcdefg}</p>
             <p>{response}</p>
             <p>{childState.saveTo}</p>
             <p> RTmapping {childState.realtimeMapping ? 'True' : 'False' } </p>
@@ -316,7 +306,6 @@ class App extends React.Component {
           aria-labelledby="form-dialog-title"
         >
           <DialogTitle id="form-dialog-title">Stop Recording</DialogTitle>
-          {/* <DialogContent dialogState={this.state.startDialogPhase}/>  */}
           <DialogContentStd>
             <DialogContentText>
               <TypoGraphy paragraph>
