@@ -74,10 +74,10 @@ const styles = theme => ({
   content: {
     flexGrow: 1,
     padding: theme.spacing.unit * 3,
-    marginTop: 190,
+    marginTop: 120,
   },
   timeline: {
-    marginLeft: 50,
+    marginLeft: 100,
     [theme.breakpoints.up('sm')]: {
       marginLeft: 30,
     },
@@ -346,8 +346,9 @@ class App extends React.Component {
             ullamcorper morbi tincidunt. Lorem donec massa sapien faucibus et molestie ac.
               
           </TypoGraphy> */}
+          <Timeline/>
           <div className={classes.timeline}>
-            <Timeline/>    
+            {/* <Timeline/>     */}
             <h6>
               adawdaw
             </h6>

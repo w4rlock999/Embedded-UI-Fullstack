@@ -9,3 +9,16 @@
     margin-left: 0px;
     z-index: -5;
 }
+
+.paper {
+    height: 50px;
+    width: 500px;
+}
+
+.paperdiv {
+    padding-top: 20px;
+}
+
+.timeline-text {
+    padding-left: 5px;
+}
