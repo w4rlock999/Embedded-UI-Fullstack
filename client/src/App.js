@@ -69,7 +69,7 @@ const styles = theme => ({
   },
   toolbar: theme.mixins.toolbar,
   drawerPaper: {
-    width: drawerWidth,  
+    width: drawerWidth,   
   },
   content: {
     flexGrow: 1,
@@ -81,6 +81,12 @@ const styles = theme => ({
     [theme.breakpoints.up('sm')]: {
       marginLeft: 30,
     },
+  },
+  containerMain: {
+    marginTop: 200,
+    marginLeft: 30,
+    marginBottom: 30,
+    padding: 0,
   },
 });
 
@@ -104,6 +110,22 @@ var serverState = {
   withRTmapping: false,
 };
 
+// const statuses = require("./dummy.json");
+
+let statuses = [];
+
+// const statuses = [
+//   { 
+//     "text": 'ini yang pertama',
+//   },
+//   {
+//     "text": 'ini yang kedua',
+//   },
+//   {
+//     "text": 'ini yang kekekekek',
+//   },
+// ];
+
 class App extends React.Component {
 
   state = {
@@ -121,6 +143,7 @@ class App extends React.Component {
     socket = socketIOClient(endpoint);
     socket.on("FromAPI", data => ( this.setState({ response: data })) );
     socket.on("ServerState", data => (this.setState({ mappingRunning: data})) );
+    socket.on("serverStatusDummy", data => (statuses = data));
   };
 
   drawerToggleHandler = () => {
@@ -325,36 +348,22 @@ class App extends React.Component {
         </Dialog>            
                   
 
+        <div class={classes.containerMain}>
+          <Timeline statusPushed={statuses}/>
+        </div>
 
-
-
-
-        <main className={classes.content}>
+        {/* <main className={classes.content}>
           
-          {/* <div className="content" dangerouslySetInnerHTML={{__html: abcdefg}}></div> */}
           <div className={classes.toolbar} />
-          {/* <TypoGraphy paragraph>
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor
-            incididunt ut labore et dolore magna aliqua. Rhoncus dolor purus non enim praesent
-            elementum facilisis leo vel. Risus at ultrices mi tempus imperdiet. Semper risus in
-            hendrerit gravida rutrum quisque non tellus. Convallis convallis tellus id interdum
-            velit laoreet id donec ultrices. Odio morbi quis commodo odio aenean sed adipiscing.
-            Amet nisl suscipit adipiscing bibendum est ultricies integer quis. Cursus euismod quis
-            viverra nibh cras. Metus vulputate eu scelerisque felis imperdiet proin fermentum leo.
-            Mauris commodo quis imperdiet massa tincidunt. Cras tincidunt lobortis feugiat vivamus
-            at augue. At augue eget arcu dictum varius duis at consectetur lorem. Velit sed
-            ullamcorper morbi tincidunt. Lorem donec massa sapien faucibus et molestie ac.
-              
-          </TypoGraphy> */}
-          <Timeline/>
+
           <div className={classes.timeline}>
-            {/* <Timeline/>     */}
+            <Timeline/>    
             <h6>
               adawdaw
             </h6>
           </div>
       
-        </main>  
+        </main>   */}
       </div>
     );
   }

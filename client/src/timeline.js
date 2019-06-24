@@ -17,17 +17,12 @@ import Typography from '@material-ui/core/Typography';
 
 function timeline(props) {
 
-    const { classes } = props;
-
-    const style2 = {
-        height: 150,
-        width: 150,
-        paddingLeft: 500,
-    }
+    // const { classes } = props;
+    const statusPushed = props.statusPushed;
 
     return (
         
-        <div>
+        <div className="baseContainer">
             {/* <div className="timeline">
                 <div className="content">
                     <Paper className={classes.root} elevation={1}>                
@@ -35,26 +30,22 @@ function timeline(props) {
                 </div>
             </div> */}
 
-            <div className="paperdiv">
-                <Paper className="paper" elevation={1}>
-                        {/* heyheyhye */}
-                        <p className="timeline-text">
-                            <Typography variant="subtitle1" >
-                                Status 
-                            </Typography>
-                        </p>
-                </Paper>
-        
-            </div>
-            
-            <div className="paperdiv">
-                <Paper className="paper" elevation={1}>
-                        {/* heyheyhye2 */}
-                </Paper>
-            </div>
+            <div className="timeline"></div>
+
+
+             {statusPushed.map(status => (
+                <div className="paperContainer" >
+                    <Paper className="paper" elevation={1}>
+                            <p className="timeline-text">
+                                <Typography variant="subtitle1" >
+                                    {status.text} 
+                                </Typography>
+                            </p>
+                    </Paper>
+                </div>
+            ))}   
             
         </div>
-
     )
 }
 

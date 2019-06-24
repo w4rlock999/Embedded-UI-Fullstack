@@ -128,6 +128,8 @@ const timerCallback = async socket => {
                 stdio: 'ignore'
             });
             
+            console.log("start logging");
+
             serverState.runTrajectoryLogger = true;
         }
 
@@ -136,6 +138,8 @@ const timerCallback = async socket => {
                 stdio: 'ignore'
             });
 
+            console.log("start mapper");
+            
             serverState.runLidarMapper = true;
         }
 
@@ -148,6 +152,18 @@ const timerCallback = async socket => {
     }
 
 };
+
+const statuses = [
+    { 
+      "text": 'ini yang pertama',
+    },
+    {
+      "text": 'ini yang kedua',
+    },
+    {
+      "text": 'ini yang kekekekek',
+    },
+];
 
 io.on("connection", socket => {
     console.log("New client connected");
@@ -174,7 +190,8 @@ io.on("connection", socket => {
             console.log("client send mappingStart: " + data);
             childBagPlayer = spawn('rosbag',['play', '/home/w4rlock999/Downloads/2019-04-12-21-02-09.bag', '--clock'], {
                 stdio: 'ignore'
-            });
+            });//use ignore to make it run forever
+            socket.emit("serverStatusDummy", statuses);
             // childBagPlayer = exec('rosbag play /home/w4rlock999/Downloads/2019-04-12-21-02-09.bag',{
             //             silent: true, 
             //             async: true

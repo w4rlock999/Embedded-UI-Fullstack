@@ -1,12 +1,17 @@
+.baseContainer {
+    padding: 0px;
+    margin: 0px;
+}
+
 .timeline::after {
     content: '';
     width: 3px;
-    position: absolute;
+    position: fixed;
     background-color: lightgrey;
     top: 0;
     bottom: 0;
     /* left: 10%; */
-    margin-left: 0px;
+    margin-left: 20px;
     z-index: -5;
 }
 
@@ -16,9 +21,19 @@
 }
 
 .paperdiv {
-    padding-top: 20px;
+    padding: 0px;
+    margin-top: 0px;
+    margin-bottom: 0px;
 }
 
 .timeline-text {
+    padding: 0px;
     padding-left: 5px;
+    margin: 0px;
+}
+
+.paperContainer {
+    padding: 0px;
+    margin-top: 10px;
+    margin-bottom: 10px;
 }
