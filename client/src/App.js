@@ -90,7 +90,6 @@ const styles = theme => ({
   },
 });
 
-
 let socket;
 
 let childState = {
@@ -110,21 +109,7 @@ var serverState = {
   withRTmapping: false,
 };
 
-// const statuses = require("./dummy.json");
-
-let statuses = [];
-
-// const statuses = [
-//   { 
-//     "text": 'ini yang pertama',
-//   },
-//   {
-//     "text": 'ini yang kedua',
-//   },
-//   {
-//     "text": 'ini yang kekekekek',
-//   },
-// ];
+var statuses = [];
 
 class App extends React.Component {
 
@@ -134,16 +119,14 @@ class App extends React.Component {
     startDialogOpen: false,
     stopDialogOpen: false,
     startDialogPhase: false,
-    response: '',
     endpoint: "http://127.0.0.1:5000"
   };
   
   componentDidMount() {
     const { endpoint } = this.state;
     socket = socketIOClient(endpoint);
-    socket.on("FromAPI", data => ( this.setState({ response: data })) );
-    socket.on("ServerState", data => (this.setState({ mappingRunning: data})) );
-    socket.on("serverStatusDummy", data => (statuses = data));
+    socket.on("mappingRunning", data => (this.setState({ mappingRunning: data})) );
+    socket.on("serverMessage", data => (statuses = data));
   };
 
   drawerToggleHandler = () => {
@@ -151,15 +134,12 @@ class App extends React.Component {
   };
 
   startDialogOpenHandler = () => {
-
       this.setState({ startDialogPhase: false});
       this.setState({ startDialogOpen: true});
-
       socket.emit("frontInput", 999);
   };
 
   stopDialogOpenHandler = () => {
-
       this.setState({ stopDialogOpen: true});
   };
 
@@ -199,7 +179,6 @@ class App extends React.Component {
   render() {
      
     const { classes, theme } = this.props;
-    const { response } = this.state;
 
     const drawer = (
       <div>
@@ -261,7 +240,6 @@ class App extends React.Component {
             >
             {/* ///alpha */}
             </TypoGraphy>
-            <p>{response}</p>
             <p>{childState.saveTo}</p>
             <p> RTmapping {childState.realtimeMapping ? 'True' : 'False' } </p>
             <div>

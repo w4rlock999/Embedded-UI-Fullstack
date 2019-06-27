@@ -11,14 +11,14 @@ const app = express();
 const port = process.env.PORT || 5000;
 const index = require("./routes/index");
 var psTree = require('ps-tree');
+var fs = require('fs');
+
 app.use(index);
 const server = http.createServer(app);
 const io = socketIo(server);
 
-var myObject = 'helloW';
 var serverState = {
     mappingRunning: false,
-    runRoscore: false,
     gpsPositionOK: false,
     lidarDataOK: false,
     runTrajectoryLogger: false,
@@ -42,7 +42,24 @@ let childLidarMapping;
 let childSaveMapped;
 let childRecordBag;
 
+var feedMessages = [{"text":"Tap on floating icon to start mapping."}];
+var backendMsgFileDir = '../backendMsg.json';
+fs.writeFile(backendMsgFileDir, JSON.stringify(feedMessages, null, 2), function (err){
+    if(err) return console.log(err);
+    console.log("writing initial message file");
+});
+
 var connectedClient = 0;
+
+function pushFeedMessage (newMessage) {
+    
+    feedMessages.unshift(newMessage);
+    fs.writeFile(backendMsgFileDir, JSON.stringify(feedMessages, null, 2), function (err){
+        if(err) return console.log(err);
+        console.log("writing to log file");
+    });
+} 
+
 
 var kill = function (pid, signal, callback) {
     signal = signal || 'SIGKILL'
@@ -66,7 +83,6 @@ var kill = function (pid, signal, callback) {
         callback();
     }
 };
-
 
 function ros_topics_listener() {
     // Register node with ROS master
@@ -96,18 +112,25 @@ function ros_topics_listener() {
           }
         );
       });
-}
+};
 
 if (require.main === module) {
     // Invoke Main Listener Function
     ros_topics_listener();   
 }
 
+var prevLidarDataOK = false;
+var prevGpsPositionOK = false;
+
 const timerCallback = async socket => {
 
     try {
-        socket.emit("ServerState", serverState.mappingRunning);
-        socket.broadcast.emit("ServerState", serverState.mappingRunning);
+
+        socket.emit("serverMessage", feedMessages);
+        socket.broadcast.emit("serverMessage", feedMessages);
+
+        socket.emit("mappingRunning", serverState.mappingRunning);
+        socket.broadcast.emit("mappingRunning", serverState.mappingRunning);
         
         socket.emit("gpsPositionOK",serverState.gpsPositionOK);
         socket.broadcast.emit("gpsPositionOK",serverState.gpsPositionOK);
@@ -121,55 +144,44 @@ const timerCallback = async socket => {
     }
 
     if(serverState.lidarDataOK && serverState.gpsPositionOK){
+
         console.log("position OK, Lidar OK, Now start trajectory logging & mapping");
         
+        if(!prevLidarDataOK){
+            pushFeedMessage({"text":"Lidar data OK!"});
+        }
+        if(!prevGpsPositionOK){
+            pushFeedMessage({"text":"GPS Position OK!"});
+        }
         if(!serverState.runTrajectoryLogger){
             childTrajectoryLogger = spawn('rosrun', ['trajectory_logger', 'trajectory_logger'], {
                 stdio: 'ignore'
             });
-            
             console.log("start logging");
-
+            pushFeedMessage({"text":"Trajectory Logger running..."});
             serverState.runTrajectoryLogger = true;
         }
-
         if(!serverState.runLidarMapper){
             childLidarMapping = spawn('rosrun', ['trajectory_logger', 'lidar_mapper'], {
                 stdio: 'ignore'
             });
-
             console.log("start mapper");
-            
+            pushFeedMessage({"text":"Mapper running..."});
             serverState.runLidarMapper = true;
         }
 
-        // if(clientState.recordBag && serverState.withRecord){
-        //     childRecordBag = spawn('bash', ['~/Workspace/web/onemap-fullstack/record.bash']);
-        // }
-
     }else{
-        console.log("system not ready, missing some topic(s)")
+        console.log("system not ready, missing some topic(s)");
     }
 
+    prevLidarDataOK = serverState.lidarDataOK;
+    prevGpsPositionOK = serverState.gpsPositionOK;
 };
 
-const statuses = [
-    { 
-      "text": 'ini yang pertama',
-    },
-    {
-      "text": 'ini yang kedua',
-    },
-    {
-      "text": 'ini yang kekekekek',
-    },
-];
-
 io.on("connection", socket => {
+    
     console.log("New client connected");
-    socket.emit("FromAPI", myObject);
     socket.emit("ServerState", serverState.mappingRunning);
-
     socket.on("frontInput", function (data) {
         console.log(data);
     });
@@ -189,30 +201,29 @@ io.on("connection", socket => {
 
             console.log("client send mappingStart: " + data);
             childBagPlayer = spawn('rosbag',['play', '/home/w4rlock999/Downloads/2019-04-12-21-02-09.bag', '--clock'], {
-                stdio: 'ignore'
-            });//use ignore to make it run forever
-            socket.emit("serverStatusDummy", statuses);
+                stdio: 'ignore' //use ignore to make it run forever
+            });
+
+            //alternative using exec instead of spawn
+            //
             // childBagPlayer = exec('rosbag play /home/w4rlock999/Downloads/2019-04-12-21-02-09.bag',{
             //             silent: true, 
             //             async: true
             // });
-
+   
+            pushFeedMessage({"text": "Mapping process started"});
             serverState.mappingRunning = true;
          
         }else{
 
-            myObject = 'mapping stopped';
-            socket.emit("FromAPI", myObject);
-            socket.broadcast.emit("FromAPI", myObject);
             console.log("client terminated process, mappingStart: " + data);
-
             childLidarMapping.kill();
             childTrajectoryLogger.kill();           
-            childBagPlayer.kill(); //if using spawn
-            // kill(childBagPlayer.pid); //if using exec
+            childBagPlayer.kill();          //if using spawn
+
+            // kill(childBagPlayer.pid);    //if using exec
  
             serverState.mappingRunning = false;
-            // serverState.runRoscore = false;
             serverState.gpsPositionOK = false;
             serverState.lidarDataOK = false;
             serverState.runTrajectoryLogger = false;
@@ -220,6 +231,7 @@ io.on("connection", socket => {
             serverState.withRecord = false;
             serverState.withRTmapping = false;
 
+            pushFeedMessage({"text": "Mapping process stopped"});
         }
     });
 
