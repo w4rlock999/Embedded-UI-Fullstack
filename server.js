@@ -54,14 +54,12 @@ fs.writeFile(backendMsgFileDir, JSON.stringify(feedMessages, null, 2), function 
 var connectedClient = 0;
 
 function pushFeedMessage (newMessage) {
-    
     feedMessages.unshift(newMessage);
     fs.writeFile(backendMsgFileDir, JSON.stringify(feedMessages, null, 2), function (err){
         if(err) return console.log(err);
         console.log("writing to log file");
     });
 } 
-
 
 var kill = function (pid, signal, callback) {
     signal = signal || 'SIGINT'
@@ -156,28 +154,27 @@ const timerCallback = async socket => {
             pushFeedMessage({"text":"GPS Position OK!"});
         }
         if(!serverState.runTrajectoryLogger){
-            childTrajectoryLogger = spawn('rosrun', ['trajectory_logger', 'trajectory_logger'], {
-                stdio: 'ignore'
-            });
-
-            // childTrajectoryLogger = exec('rosrun trajectory_logger trajectory_logger',{
-            //     silent: true, 
-            //     async: true
+            // childTrajectoryLogger = spawn('rosrun', ['trajectory_logger', 'trajectory_logger'], {
+            //     stdio: 'ignore'
             // });
-            
+
+            childTrajectoryLogger = exec('rosrun trajectory_logger trajectory_logger',{
+                silent: true, 
+                async: true
+            });
             console.log("start logging");
             pushFeedMessage({"text":"Trajectory Logger running..."});
             serverState.runTrajectoryLogger = true;
         }
         if(!serverState.runLidarMapper){
-            childLidarMapping = spawn('rosrun', ['trajectory_logger', 'lidar_mapper'], {
-                stdio: 'ignore'
-            });
+            // childLidarMapping = spawn('rosrun', ['trajectory_logger', 'lidar_mapper'], {
+            //     stdio: 'ignore'
+            // });
 
-            // childLidarMapping = exec('rosrun trajectory_logger lidar_mapper',{
-            //     silent: true, 
-            //     async: true
-            // }); 
+            childLidarMapping = exec('rosrun trajectory_logger lidar_mapper',{
+                silent: true, 
+                async: true
+            }); 
             console.log("start mapper");
             pushFeedMessage({"text":"Mapper running..."});
             serverState.runLidarMapper = true;
@@ -189,7 +186,7 @@ const timerCallback = async socket => {
             //     detached: true
             // });
 
-            childRecordBag = exec('bash /home/w4rlock999/Workspace/web/onemap-fullstack/record.bash iniprojectnya',{
+            childRecordBag = exec(`bash /home/w4rlock999/Workspace/web/onemap-fullstack/record.bash ${clientState.projectName}`,{
                         silent: true, 
                         async: true
             });
@@ -203,7 +200,7 @@ const timerCallback = async socket => {
             //     detached: true
             // });
 
-            childSaveMapped = exec('bash /home/w4rlock999/Workspace/web/onemap-fullstack/rtmapping.bash iniprojectnya',{
+            childSaveMapped = exec(`bash /home/w4rlock999/Workspace/web/onemap-fullstack/rtmapping.bash ${clientState.projectName}`,{
                         silent: true, 
                         async: true
             });
@@ -257,7 +254,7 @@ io.on("connection", socket => {
             //             async: true
             // });
    
-            pushFeedMessage({"text": "MAPPING PROCESS STARTED"});
+            pushFeedMessage({"text": "MAPPING PROCESS STARTED for "+ clientState.projectName +""});
             serverState.mappingRunning = true;
          
         }else{
@@ -265,12 +262,15 @@ io.on("connection", socket => {
             console.log("client terminated process, mappingStart: " + data);
             serverState.mappingRunning = false;
 
-            childLidarMapping.kill();
-            childTrajectoryLogger.kill(); 
+            // childLidarMapping.kill();
+            // childTrajectoryLogger.kill(); 
             // childRecordBag.kill();
             // childBagPlayer.kill('SIGINT');          //if using spawn
+            kill(childLidarMapping.pid, 'SIGINT');
+            kill(childTrajectoryLogger.pid);
             kill(childRecordBag.pid);
-            kill(childSaveMapped.pid);                  //if using exec (should prefer this, killing all the process)
+            kill(childSaveMapped.pid);                 //if using exec (should prefer this, killing all the process)
+            
             kill(childBagPlayer.pid, 'SIGINT', function() {
 
                 pushFeedMessage({"text": "Mapping process stopped"});    
@@ -282,7 +282,7 @@ io.on("connection", socket => {
                 serverState.realtimeMapping = false;
             }); 
 
-            childToPCD = exec('bash /home/w4rlock999/Workspace/web/onemap-fullstack/topcd.bash iniprojectnya',{
+            childToPCD = exec(`bash /home/w4rlock999/Workspace/web/onemap-fullstack/topcd.bash ${clientState.projectName}`,{
                 killSignal: 'SIGINT'
             }, 
             function(){
@@ -292,15 +292,8 @@ io.on("connection", socket => {
                 pushFeedMessage({"text": "Export to PCD, done!"});
             });
             // console.log("terminating bagplayer");
-            
         }
     });
-
-    // childToPCD.on('exit',function(){
-
-    //     pushFeedMessage({"text": "Export to PCD, done!"});
-
-    // });
 
     if(connectedClient == 0){
         setInterval( ()=>timerCallback(socket),1000);
