@@ -23,8 +23,8 @@ var serverState = {
     lidarDataOK: false,
     runTrajectoryLogger: false,
     runLidarMapper: false,
-    withRecord: false,
-    withRTmapping: false
+    recordBag: false,
+    realtimeMapping: false
 };
 var clientState = {
     projectName: "",
@@ -62,7 +62,7 @@ function pushFeedMessage (newMessage) {
 
 
 var kill = function (pid, signal, callback) {
-    signal = signal || 'SIGKILL'
+    signal = signal || 'SIGINT'
     callback = callback || function () {};
     var killTree = true;
     if (killTree) {
@@ -157,6 +157,12 @@ const timerCallback = async socket => {
             childTrajectoryLogger = spawn('rosrun', ['trajectory_logger', 'trajectory_logger'], {
                 stdio: 'ignore'
             });
+
+            // childTrajectoryLogger = exec('rosrun trajectory_logger trajectory_logger',{
+            //     silent: true, 
+            //     async: true
+            // });
+            
             console.log("start logging");
             pushFeedMessage({"text":"Trajectory Logger running..."});
             serverState.runTrajectoryLogger = true;
@@ -165,9 +171,28 @@ const timerCallback = async socket => {
             childLidarMapping = spawn('rosrun', ['trajectory_logger', 'lidar_mapper'], {
                 stdio: 'ignore'
             });
+
+            // childLidarMapping = exec('rosrun trajectory_logger lidar_mapper',{
+            //     silent: true, 
+            //     async: true
+            // }); 
             console.log("start mapper");
             pushFeedMessage({"text":"Mapper running..."});
             serverState.runLidarMapper = true;
+        }
+
+        if(clientState.recordBag && !serverState.recordBag){
+            // childRecordBag = spawn('bash',['/home/w4rlock999/Workspace/web/onemap-fullstack/record.bash', 'iniprojectnya'], {
+            //     stdio: 'ignore',
+            //     detached: true
+            // });
+
+            childRecordBag = exec('bash /home/w4rlock999/Workspace/web/onemap-fullstack/record.bash iniprojectnya',{
+                        silent: true, 
+                        async: true
+            });
+            pushFeedMessage({"text":"Recording bag file {clientState.projectName} "});
+            serverState.recordBag = true;
         }
 
     }else{
@@ -200,8 +225,13 @@ io.on("connection", socket => {
         if(data == true) {
 
             console.log("client send mappingStart: " + data);
-            childBagPlayer = spawn('rosbag',['play', '/home/w4rlock999/Downloads/2019-04-12-21-02-09.bag', '--clock'], {
-                stdio: 'ignore' //use ignore to make it run forever
+            // childBagPlayer = spawn('rosbag',['play', '/home/w4rlock999/Downloads/2019-04-12-21-02-09.bag', '--clock'], {
+            //     stdio: 'ignore' //use ignore to make it run forever
+            // });
+
+            childBagPlayer = exec('rosbag play /home/w4rlock999/Downloads/2019-04-12-21-02-09.bag --clock',{
+                silent: true, 
+                async: true
             });
 
             //alternative using exec instead of spawn
@@ -211,27 +241,33 @@ io.on("connection", socket => {
             //             async: true
             // });
    
-            pushFeedMessage({"text": "Mapping process started"});
+            pushFeedMessage({"text": "MAPPING PROCESS STARTED"});
             serverState.mappingRunning = true;
          
         }else{
 
             console.log("client terminated process, mappingStart: " + data);
             childLidarMapping.kill();
-            childTrajectoryLogger.kill();           
-            childBagPlayer.kill();          //if using spawn
+            childTrajectoryLogger.kill(); 
+            // childRecordBag.kill();
+            // childBagPlayer.kill('SIGINT');          //if using spawn
+            kill(childRecordBag.pid);
+            kill(childBagPlayer.pid, 'SIGINT', function() {
 
-            // kill(childBagPlayer.pid);    //if using exec
- 
-            serverState.mappingRunning = false;
-            serverState.gpsPositionOK = false;
-            serverState.lidarDataOK = false;
-            serverState.runTrajectoryLogger = false;
-            serverState.runLidarMapper = false;
-            serverState.withRecord = false;
-            serverState.withRTmapping = false;
+                pushFeedMessage({"text": "Mapping process stopped"});
+                
+                serverState.mappingRunning = false;
+                serverState.gpsPositionOK = false;
+                serverState.lidarDataOK = false;
+                serverState.runTrajectoryLogger = false;
+                serverState.runLidarMapper = false;
+                serverState.recordBag = false;
+                serverState.realtimeMapping = false;
+            });    //if using exec
+            // console.log("terminating bagplayer");
+            
 
-            pushFeedMessage({"text": "Mapping process stopped"});
+
         }
     });
 
