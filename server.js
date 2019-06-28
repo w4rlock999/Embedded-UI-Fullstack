@@ -3,6 +3,7 @@ const http = require('http');
 const socketIo = require('socket.io');
 var exec = require('child_process').exec;
 var spawn = require('child_process').spawn;
+var execSync = require('child_process').execSync;
 const rosnodejs = require('rosnodejs');
 const std_msgs = rosnodejs.require('std_msgs').msg;
 const ekf_nav = rosnodejs.require('sbg_driver').msg;
@@ -41,6 +42,7 @@ let childTrajectoryLogger;
 let childLidarMapping;
 let childSaveMapped;
 let childRecordBag;
+let childToPCD;
 
 var feedMessages = [{"text":"Tap on floating icon to start mapping."}];
 var backendMsgFileDir = '../backendMsg.json';
@@ -92,11 +94,11 @@ function ros_topics_listener() {
         let ekf_nav_sub = rosNode.subscribe('/ekf_nav', ekf_nav.SbgEkfNav,
           (data) => { 
         
-            if(data.status.gps1_pos_used && !serverState.gpsPositionOK){
+            if(data.status.gps1_pos_used && !serverState.gpsPositionOK && serverState.mappingRunning){
                 serverState.gpsPositionOK = true;    
                 rosnodejs.log.info('Status gps position is True!');
             }else //below cannot be executed on roscore termination bcs no incoming data after. 
-            if(!data.status.gps1_pos_used && serverState.gpsPositionOK){
+            if(!data.status.gps1_pos_used && serverState.gpsPositionOK && serverState.mappingRunning){
                 serverState.gpsPositionOK = false;    
                 rosnodejs.log.info('Status gps position is False!');
             }
@@ -105,7 +107,7 @@ function ros_topics_listener() {
 
         let velodyne_points_sub = rosNode.subscribe('/velodyne_points', sensor_msgs.PointCloud2,
           (data) => {  
-            if(!serverState.lidarDataOK){
+            if(!serverState.lidarDataOK && serverState.mappingRunning){
                 serverState.lidarDataOK = true;
                 rosnodejs.log.info('lidar data OK!');
             }    
@@ -191,8 +193,22 @@ const timerCallback = async socket => {
                         silent: true, 
                         async: true
             });
-            pushFeedMessage({"text":"Recording bag file {clientState.projectName} "});
+            pushFeedMessage({"text":"Recording bag file"});
             serverState.recordBag = true;
+        }
+
+        if(clientState.realtimeMapping && !serverState.realtimeMapping){
+            // childRecordBag = spawn('bash',['/home/w4rlock999/Workspace/web/onemap-fullstack/record.bash', 'iniprojectnya'], {
+            //     stdio: 'ignore',
+            //     detached: true
+            // });
+
+            childSaveMapped = exec('bash /home/w4rlock999/Workspace/web/onemap-fullstack/rtmapping.bash iniprojectnya',{
+                        silent: true, 
+                        async: true
+            });
+            pushFeedMessage({"text":"Recording mapped data"});
+            serverState.realtimeMapping = true;
         }
 
     }else{
@@ -247,29 +263,44 @@ io.on("connection", socket => {
         }else{
 
             console.log("client terminated process, mappingStart: " + data);
+            serverState.mappingRunning = false;
+
             childLidarMapping.kill();
             childTrajectoryLogger.kill(); 
             // childRecordBag.kill();
             // childBagPlayer.kill('SIGINT');          //if using spawn
             kill(childRecordBag.pid);
+            kill(childSaveMapped.pid);                  //if using exec (should prefer this, killing all the process)
             kill(childBagPlayer.pid, 'SIGINT', function() {
 
-                pushFeedMessage({"text": "Mapping process stopped"});
+                pushFeedMessage({"text": "Mapping process stopped"});    
+                // childToPCD.execSync(command[, options])
                 
-                serverState.mappingRunning = false;
                 serverState.gpsPositionOK = false;
                 serverState.lidarDataOK = false;
-                serverState.runTrajectoryLogger = false;
-                serverState.runLidarMapper = false;
                 serverState.recordBag = false;
                 serverState.realtimeMapping = false;
-            });    //if using exec
+            }); 
+
+            childToPCD = exec('bash /home/w4rlock999/Workspace/web/onemap-fullstack/topcd.bash iniprojectnya',{
+                killSignal: 'SIGINT'
+            }, 
+            function(){
+
+                serverState.runTrajectoryLogger = false;
+                serverState.runLidarMapper = false;
+                pushFeedMessage({"text": "Export to PCD, done!"});
+            });
             // console.log("terminating bagplayer");
             
-
-
         }
     });
+
+    // childToPCD.on('exit',function(){
+
+    //     pushFeedMessage({"text": "Export to PCD, done!"});
+
+    // });
 
     if(connectedClient == 0){
         setInterval( ()=>timerCallback(socket),1000);
