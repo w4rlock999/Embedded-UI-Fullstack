@@ -59,9 +59,11 @@ const styles = theme => ({
       width: `calc(100% - ${drawerWidth}px)`,
     },
     height: 200,
-    background: 'linear-gradient(45deg, #FE6B8B 30%, #FF8E53 90%)',
+    background: 'linear-gradient(45deg, #000080 30%, #800080 90%)',
   },
   menuButton: {
+    padding: 0,
+    margin: 0,
     marginRight: 20,
     [theme.breakpoints.up('sm')]: {
       display: 'none',
@@ -88,14 +90,28 @@ const styles = theme => ({
     marginBottom: 30,
     padding: 0,
   },
+  titleText: {
+      margin: 'auto',
+      marginBottom: 50,
+      padding: 0,
+      [theme.breakpoints.up('sm')]: {
+        marginBottom: 75,
+      },      
+  },
+  titleTextContent: {
+    fontSize: 35,
+    [theme.breakpoints.up('sm')]: {
+      fontSize: 40,
+    },
+  }
 });
 
 let socket;
 
 let childState = {
-  projectName: "projectNameSTD",
+  projectName: "projectName",
   saveTo: "~/simpanBag/",
-  azimuth: "30",
+  azimuth: "0",
   recordBag: true,
   realtimeMapping: true
 }; 
@@ -200,7 +216,7 @@ class App extends React.Component {
               </ListItemIcon>
               <ListItemText insert primary="Mapping" />
             </ListItem>
-            <ListItem button>
+            {/* <ListItem button>
               <ListItemIcon>
                 <FolderIcon />
               </ListItemIcon>
@@ -211,7 +227,7 @@ class App extends React.Component {
                 <AboutIcon />
               </ListItemIcon>
               <ListItemText insert primary="About" />
-            </ListItem>
+            </ListItem> */}
         </List>
       </div>    
     );
@@ -230,27 +246,27 @@ class App extends React.Component {
               <MenuIcon />  
             </IconButton>
 
-            <TypoGraphy variant="title"
-                        color="inherit"
-            >
-            {/* ONEMAP        */}
-            </TypoGraphy>
-            <TypoGraphy variant="subheading"
-                        color="inherit"
-            >
-            {/* ///alpha */}
-            </TypoGraphy>
-            <p>{childState.saveTo}</p>
+
+            
+            {/* <p>{childState.saveTo}</p>
             <p> RTmapping {childState.realtimeMapping ? 'True' : 'False' } </p>
             <div>
               <p>
                 record bag 
                 {childState.recordBag ? 'True' : 'False'}
               </p>
-            </div>
+            </div> */}
             {/* <renderIfElse conditional={true} /> */}
 
           </Toolbar>
+          <div className={classes.titleText}>
+            <TypoGraphy variant="title"
+                        color="inherit">
+              <p className={classes.titleTextContent}>
+                MAPPER-UI       
+              </p>
+            </TypoGraphy>
+          </div>
         </AppBar>
         
         <nav className={classes.drawer}> 

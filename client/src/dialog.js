@@ -11,9 +11,9 @@ class dialogContentRender extends React.Component {
     
 
     state = {
-        projectName: "projectNameSTD",
+        projectName: "projectName",
         saveTo: "~/simpanBag/",
-        azimuth: "30",
+        azimuth: "0",
         recordBag: true,
         realtimeMapping: true
     }
@@ -48,14 +48,14 @@ class dialogContentRender extends React.Component {
                     onChange={this.handleChange("projectName")}
                     fullWidth
                 />
-                <TextField
+                {/* <TextField
                     margin="dense"
                     id="saveto"
                     label="Save To"
                     value={this.state.saveTo}
                     onChange={this.handleChange("saveTo")}
                     fullWidth
-                />
+                /> */}
                 <FormGroup column>
                 <FormControlLabel
                     control={
