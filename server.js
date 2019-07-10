@@ -158,7 +158,7 @@ const timerCallback = async socket => {
             //     stdio: 'ignore'
             // });
 
-            childTrajectoryLogger = exec('rosrun trajectory_logger trajectory_logger',{
+            childTrajectoryLogger = exec(`rosrun trajectory_logger trajectory_logger ${clientState.azimuth}`,{
                 silent: true, 
                 async: true
             });
