@@ -135,7 +135,7 @@ class App extends React.Component {
     startDialogOpen: false,
     stopDialogOpen: false,
     startDialogPhase: false,
-    endpoint: "http://127.0.0.1:5000"
+    endpoint: "http://100.100.0.1:5000"
   };
   
   componentDidMount() {
