@@ -1,39 +1,62 @@
 .baseContainer {
     padding: 0px;
-    margin: 0px;
+    margin: 0px; 
 }
 
 .timeline::after {
     content: '';
     width: 3px;
     position: fixed;
-    background-color: lightgrey;
+    background-color: orangered;
     top: 0;
     bottom: 0;
     /* left: 10%; */
     margin-left: 20px;
-    z-index: -5;
+}
+
+.blockContainer{
+    display: flex;
+    padding: 0px;
+    margin-top: 18px;
+    margin-left: 5px;
+    z-index: 3;
+}
+
+.timestamp {
+    background: navy;
+    padding-top: 6px;
+    padding-left: 7px;
+    /* text-align: center; */
+    height: 25px;
+    width: 55px; 
+    font-size: 7pt;
+    z-index: 1;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.timestamp-text {
+    color: white;
+    margin: 0px;
+    padding: 0px;
+ 
 }
 
 .paper {
-    height: 50px;
-    width: 500px;
-}
-
-.paperdiv {
-    padding: 0px;
-    margin-top: 0px;
-    margin-bottom: 0px;
+    /* margin-left: 25px; */
+    padding-top: 4px;
+    padding-left: 7px;
+    padding-right: 7px;
+    height: calc(40px + (55 - 40) * ((100vw - 300px) / (1600 - 300)));
+    /* 15vw; */
+    width: calc(220px + (290 - 220) * ((100vw - 300px) / (1600 - 300)));
 }
 
 .timeline-text {
     padding: 0px;
+    padding-top: 5px;
     padding-left: 5px;
     margin: 0px;
-}
-
-.paperContainer {
-    padding: 0px;
-    margin-top: 10px;
-    margin-bottom: 10px;
+    color: black;
+    font-size: 9pt;
+    font-family: Arial, Helvetica, sans-serif;
 }

@@ -5,16 +5,6 @@ import Paper from '@material-ui/core/Paper';
 import './timeline.css';
 import Typography from '@material-ui/core/Typography';
 
-// const styles = theme => ({
-//     root: {
-//       ...theme.mixins.gutters(),
-//       paddingTop: theme.spacing.unit * 2,
-//       paddingBottom: theme.spacing.unit * 2,
-//     },
-//   });
-
-
-
 function timeline(props) {
 
     // const { classes } = props;
@@ -23,28 +13,26 @@ function timeline(props) {
     return (
         
         <div className="baseContainer">
-            {/* <div className="timeline">
-                <div className="content">
-                    <Paper className={classes.root} elevation={1}>                
-                    </Paper>
-                </div>
-            </div> */}
-
             <div className="timeline"></div>
-
-
-             {statusPushed.map(status => (
-                <div className="paperContainer" >
-                    <Paper className="paper" elevation={1}>
-                            <p className="timeline-text">
-                                <Typography variant="subtitle1" >
-                                    {status.text} 
-                                </Typography>
-                            </p>
-                    </Paper>
-                </div>
-            ))}   
             
+            {statusPushed.map(status => (                
+                <div className="blockContainer">
+                    
+                    <div className="timestamp">
+                        <p className="timestamp-text">10:15</p>
+                    </div>
+                    <div className="paperContainer" >
+                        <Paper className="paper" elevation={1}>
+                                <p className="timeline-text">
+                                    {/* <Typography variant="subtitle1" > */}
+                                        {status.text} 
+                                    {/* </Typography> */}
+                                </p>
+                        </Paper>
+                    </div>
+                </div>
+            ))}
+    
         </div>
     )
 }

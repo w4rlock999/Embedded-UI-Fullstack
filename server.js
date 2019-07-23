@@ -18,6 +18,8 @@ app.use(index);
 const server = http.createServer(app);
 const io = socketIo(server);
 
+var pathToProject = "/home/w4rlock999/oneMap-Project/";
+
 var serverState = {
     mappingRunning: false,
     gpsPositionOK: false,
@@ -208,6 +210,34 @@ io.on("connection", socket => {
     socket.emit("ServerState", serverState.mappingRunning);
     socket.on("frontInput", function (data) {
         console.log(data);
+    });
+
+    socket.on("shutdown", function (data) {
+        console.log(`shutdown signal got,value: ${data}`);
+        if(data){
+            exec('shutdown now', function(error, stdout, stderr){ callback(stdout); });
+        }
+    });
+
+    socket.on("restart", function (data) {
+        console.log(`restart signal got,value: ${data}`);
+        if(data){
+            exec('shutdown -r now', function(error, stdout, stderr){ callback(stdout); });
+        }
+    });
+
+    fs.readdir(pathToProject, function(err, items) {
+        console.log(items);
+        console.log("read folders");
+        socket.emit("serverFolderRead", items);
+    });
+    
+    socket.on("clientFolderRead", function (data) {
+        fs.readdir(pathToProject, function(err, items) {
+            console.log(items);
+            console.log("read folders");
+            socket.emit("serverFolderRead", items);
+        });
     });
 
     socket.on("clientRequestParams", function (data) {

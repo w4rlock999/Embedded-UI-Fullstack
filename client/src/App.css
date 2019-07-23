@@ -1,4 +1,19 @@
-.App {
-  text-align: center;
-  height: 60pt;
+@font-face{
+  font-family: "samsung-one-400";
+  src: url("./font/SamsungOne-400.ttf"); 
+}
+
+@font-face{
+  font-family: "samsung-one-600";
+  src: url("./font/SamsungOne-600.ttf"); 
+}
+
+@font-face{
+  font-family: "samsung-one-700";
+  src: url("./font/SamsungOne-700.ttf"); 
+}
+
+@font-face{
+  font-family: "samsung-one-800";
+  src: url("./font/SamsungOne-800.ttf"); 
 }
