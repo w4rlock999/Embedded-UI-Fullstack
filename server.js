@@ -46,7 +46,15 @@ let childSaveMapped;
 let childRecordBag;
 let childToPCD;
 
-var feedMessages = [{"text":"Tap on floating icon to start mapping."}];
+
+var date = new Date();
+var current_hours = date.getHours();
+var current_minute = date.getMinutes();
+
+var feedMessages = [{"text":"Tap on floating icon to start mapping.", 
+                     "time":( (current_hours<10)?`0${current_hours}`:`${current_hours}`) + (`:`) 
+                            + ((current_minute<10)?`0${current_minute}`:`${current_minute}`)}];
+
 var backendMsgFileDir = '../backendMsg.json';
 fs.writeFile(backendMsgFileDir, JSON.stringify(feedMessages, null, 2), function (err){
     if(err) return console.log(err);
@@ -56,6 +64,15 @@ fs.writeFile(backendMsgFileDir, JSON.stringify(feedMessages, null, 2), function 
 var connectedClient = 0;
 
 function pushFeedMessage (newMessage) {
+    
+    var newDate = new Date();
+    
+    current_hours = newDate.getHours();
+    current_minute = newDate.getMinutes();
+    
+    newMessage["time"] = ( (current_hours<10)?`0${current_hours}`:`${current_hours}`) + (`:`) 
+                            + ((current_minute<10)?`0${current_minute}`:`${current_minute}`);
+    
     feedMessages.unshift(newMessage);
     fs.writeFile(backendMsgFileDir, JSON.stringify(feedMessages, null, 2), function (err){
         if(err) return console.log(err);
@@ -231,7 +248,7 @@ io.on("connection", socket => {
         console.log("read folders");
         socket.emit("serverFolderRead", items);
     });
-    
+
     socket.on("clientFolderRead", function (data) {
         fs.readdir(pathToProject, function(err, items) {
             console.log(items);

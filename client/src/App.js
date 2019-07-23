@@ -348,11 +348,13 @@ class App extends React.Component {
             </Drawer>
           </Hidden>
         </nav>
-
-        <FabOne onClickStart={this.startDialogOpenHandler}
-                onClickStop={this.stopDialogOpenHandler} 
-                mappingRunningState={this.state.mappingRunning}
-        />
+        
+        { this.state.drawer === "mapping" && 
+          <FabOne onClickStart={this.startDialogOpenHandler}
+                  onClickStop={this.stopDialogOpenHandler} 
+                  mappingRunningState={this.state.mappingRunning}
+          />
+        }
 
         <Dialog
           open={this.state.powerDialogOpen}

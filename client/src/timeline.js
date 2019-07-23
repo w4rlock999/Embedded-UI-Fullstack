@@ -19,7 +19,7 @@ function timeline(props) {
                 <div className="blockContainer">
                     
                     <div className="timestamp">
-                        <p className="timestamp-text">10:15</p>
+                        <p className="timestamp-text">{status.time}</p>
                     </div>
                     <div className="paperContainer" >
                         <Paper className="paper" elevation={1}>
