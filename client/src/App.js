@@ -269,12 +269,12 @@ class App extends React.Component {
               <ListItemText insert primary="Mapping" />
             </ListItem>
             
-            <ListItem button selected={this.state.drawer === "saved"} onClick={this.drawerSavedOnClickHandler}>
+            {/* <ListItem button selected={this.state.drawer === "saved"} onClick={this.drawerSavedOnClickHandler}>
               <ListItemIcon>
                 <FolderIcon />
               </ListItemIcon>
               <ListItemText insert primary="Saved" />
-            </ListItem>
+            </ListItem> */}
             
             <ListItem button selected={this.state.drawer === "power"} onClick={this.drawerPowerOnClickHandler}>
               <ListItemIcon>
@@ -283,12 +283,12 @@ class App extends React.Component {
               <ListItemText insert primary="Power" />
             </ListItem>
 
-            <ListItem button selected={this.state.drawer === "about"} onClick={this.drawerAboutOnClickHandler}>
+            {/* <ListItem button selected={this.state.drawer === "about"} onClick={this.drawerAboutOnClickHandler}>
               <ListItemIcon>
                 <AboutIcon />
               </ListItemIcon>
               <ListItemText insert primary="About" />
-            </ListItem>
+            </ListItem> */}
         </List>
       </div>    
     );
@@ -315,7 +315,7 @@ class App extends React.Component {
                         color="inherit">
               <p className={classes.titleTextContent}>
                 <span>Mapper</span>
-                <span className={classes.titleTextContentBold}>One</span>       
+                <span className={classes.titleTextContentBold}>App</span>       
               </p>
             </TypoGraphy>
           </div>

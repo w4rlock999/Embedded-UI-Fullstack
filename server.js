@@ -1,6 +1,7 @@
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
+const drivelist = require('drivelist');
 var exec = require('child_process').exec;
 var spawn = require('child_process').spawn;
 var execSync = require('child_process').execSync;
@@ -61,6 +62,12 @@ fs.writeFile(backendMsgFileDir, JSON.stringify(feedMessages, null, 2), function 
     console.log("writing initial message file");
 });
 
+const driveStart = async function(){
+    const drives = await drivelist.list();
+    console.log(drives);
+}
+
+driveStart();
 var connectedClient = 0;
 
 function pushFeedMessage (newMessage) {
