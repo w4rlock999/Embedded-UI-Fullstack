@@ -19,7 +19,7 @@ app.use(index);
 const server = http.createServer(app);
 const io = socketIo(server);
 
-var pathToProject = "/home/w4rlock999/oneMap-Project/";
+var pathToProject = "/home/rekadaya/oneMap-Project/";
 
 var serverState = {
     mappingRunning: false,
@@ -202,7 +202,7 @@ const timerCallback = async socket => {
 
         if(clientState.recordBag && !serverState.recordBag){
 
-            childRecordBag = exec(`bash /home/w4rlock999/Workspace/web/onemap-fullstack/record.bash ${clientState.projectName}`,{
+            childRecordBag = exec(`bash /home/rekadaya/ui_dir/onemap-fullstack/record.bash ${clientState.projectName}`,{
                         silent: true, 
                         async: true
             });
@@ -212,7 +212,7 @@ const timerCallback = async socket => {
 
         if(clientState.realtimeMapping && !serverState.realtimeMapping){
 
-            childSaveMapped = exec(`bash /home/w4rlock999/Workspace/web/onemap-fullstack/rtmapping.bash ${clientState.projectName}`,{
+            childSaveMapped = exec(`bash /home/rekadaya/ui_dir/onemap-fullstack/rtmapping.bash ${clientState.projectName}`,{
                         silent: true, 
                         async: true
             });
@@ -279,7 +279,7 @@ io.on("connection", socket => {
 
             console.log("client send mappingStart: " + data);
 
-            childBagPlayer = exec('rosbag play /home/w4rlock999/Downloads/2019-04-12-21-02-09.bag --clock',{
+            childBagPlayer = exec('rosbag play /home/rekadaya//Downloads/2019-04-12-21-02-09.bag --clock',{
                 silent: true, 
                 async: true
             });
@@ -316,7 +316,7 @@ io.on("connection", socket => {
             }); 
             
             if(serverState.realtimeMapping){
-                childToPCD = exec(`bash /home/w4rlock999/Workspace/web/onemap-fullstack/topcd.bash ${clientState.projectName}`,{
+                childToPCD = exec(`bash /home/rekadaya/ui_dir/onemap-fullstack/topcd.bash ${clientState.projectName}`,{
                     killSignal: 'SIGINT'
                 }, 
                 function(){
@@ -326,7 +326,7 @@ io.on("connection", socket => {
                     pushFeedMessage({"text": "Export to PCD, done!"});
                 });
             }else{
-                exec(`bash /home/w4rlock999/Workspace/web/onemap-fullstack/nopcd.bash ${clientState.projectName}`,{
+                exec(`bash /home/rekadaya/ui_dir/onemap-fullstack/nopcd.bash ${clientState.projectName}`,{
                     killSignal: 'SIGINT'
                 }, 
                 function(){

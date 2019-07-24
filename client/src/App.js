@@ -150,7 +150,7 @@ class App extends React.Component {
     stopDialogOpen: false,
     startDialogPhase: false,
     powerDialogOpen: false,
-    endpoint: "http://localhost:5000",
+    endpoint: "http://100.100.0.1:5000",
     drawer: "mapping",
   };
   
