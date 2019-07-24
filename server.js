@@ -47,6 +47,7 @@ let childSaveMapped;
 let childRecordBag;
 let childToPCD;
 
+let childShutdown;
 
 var date = new Date();
 var current_hours = date.getHours();
@@ -169,16 +170,18 @@ const timerCallback = async socket => {
         console.error(`Error: ${error.code}`);
     }
 
+    if(!prevLidarDataOK && serverState.lidarDataOK){
+        pushFeedMessage({"text":"Lidar data OK!"});
+    }
+
+    if(!prevGpsPositionOK && serverState.gpsPositionOK){
+        pushFeedMessage({"text":"GPS Position OK!"});
+    }
+
     if(serverState.lidarDataOK && serverState.gpsPositionOK){
 
         console.log("position OK, Lidar OK, Now start trajectory logging & mapping");
         
-        if(!prevLidarDataOK){
-            pushFeedMessage({"text":"Lidar data OK!"});
-        }
-        if(!prevGpsPositionOK){
-            pushFeedMessage({"text":"GPS Position OK!"});
-        }
         if(!serverState.runTrajectoryLogger){
 
             childTrajectoryLogger = exec(`rosrun trajectory_logger trajectory_logger ${clientState.azimuth}`,{
@@ -237,16 +240,43 @@ io.on("connection", socket => {
     });
 
     socket.on("shutdown", function (data) {
-        console.log(`shutdown signal got,value: ${data}`);
+        console.log(`NEW2 shutdown signal got,value: ${data}`);
+
+        // spawn("shutdown",['now']);
         if(data){
-            exec('shutdown now', function(error, stdout, stderr){ callback(stdout); });
+
+            exec(`sudo shutdown now`, (error, stdout, stderr) => {
+                console.log("command called");
+                
+                if (error) {
+                    console.error(`exec error: ${error}`);
+                    return;
+                }
+                console.log(`stdout: ${stdout}`);
+                console.log(`stderr: ${stderr}`);
+            });
+
+            // childShutdown = exec(`bash /home/rekadaya/ui_dir/onemap-fullstack/shutdown.bash`,{
+            //     silent: true, 
+            //     async: true
+            // });
         }
     });
 
     socket.on("restart", function (data) {
         console.log(`restart signal got,value: ${data}`);
         if(data){
-            exec('shutdown -r now', function(error, stdout, stderr){ callback(stdout); });
+            
+            exec(`sudo shutdown -r now`, (error, stdout, stderr) => {
+                console.log("command called");
+                
+                if (error) {
+                    console.error(`exec errpr: ${error}`);
+                    return;
+                }
+                console.log(`stdout: ${stdout}`);
+                console.log(`stderr: ${stderr}`);
+            });
         }
     });
 
@@ -279,15 +309,15 @@ io.on("connection", socket => {
 
             console.log("client send mappingStart: " + data);
 
-            childBagPlayer = exec('rosbag play /home/rekadaya//Downloads/2019-04-12-21-02-09.bag --clock',{
-                silent: true, 
-                async: true
-            });
-
-            // childMapperLauncher = exec('roslaunch trajectory_logger devices.launch',{
-            //     silent: true,
+            // childBagPlayer = exec('rosbag play /home/rekadaya//Downloads/2019-04-12-21-02-09.bag --clock',{
+            //     silent: true, 
             //     async: true
             // });
+
+            childMapperLauncher = exec('roslaunch trajectory_logger devices.launch',{
+                silent: true,
+                async: true
+            });
    
             pushFeedMessage({"text": "MAPPING PROCESS STARTED for "+ clientState.projectName +""});
             serverState.mappingRunning = true;
@@ -304,8 +334,8 @@ io.on("connection", socket => {
                 kill(childRecordBag.pid);
                 kill(childSaveMapped.pid);                 //if using exec (should prefer this, killing all the process)    
             }
-            // kill(childMapperLauncher.pid, 'SIGINT', function() {
-            kill(childBagPlayer.pid, 'SIGINT', function() {
+            kill(childMapperLauncher.pid, 'SIGINT', function() {
+            // kill(childBagPlayer.pid, 'SIGINT', function() {
 
                 pushFeedMessage({"text": "Mapping process stopped"});    
                 
