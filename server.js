@@ -19,7 +19,11 @@ app.use(index);
 const server = http.createServer(app);
 const io = socketIo(server);
 
-var pathToProject = "/home/rekadaya/oneMap-Project/";
+
+var pathToProject = "/home/w4rlock999/oneMap-Project/";
+var pathToApp = "/home/w4rlock999/Workspace/web/onemap-fullstack";
+// var pathToProject = "/home/rekadaya/oneMap-Project/";
+// var pathToApp = "/home/rekadaya/ui_dir/onemap-fullstack";
 
 var serverState = {
     mappingRunning: false,
@@ -65,7 +69,8 @@ fs.writeFile(backendMsgFileDir, JSON.stringify(feedMessages, null, 2), function 
 
 const driveStart = async function(){
     const drives = await drivelist.list();
-    console.log(drives);
+    console.log("read drives....")
+    console.log(drives[0].mountpoints);
 }
 
 driveStart();
@@ -205,7 +210,7 @@ const timerCallback = async socket => {
 
         if(clientState.recordBag && !serverState.recordBag){
 
-            childRecordBag = exec(`bash /home/rekadaya/ui_dir/onemap-fullstack/record.bash ${clientState.projectName}`,{
+            childRecordBag = exec(`bash ${pathToApp}/record.bash ${clientState.projectName}`,{
                         silent: true, 
                         async: true
             });
@@ -215,7 +220,7 @@ const timerCallback = async socket => {
 
         if(clientState.realtimeMapping && !serverState.realtimeMapping){
 
-            childSaveMapped = exec(`bash /home/rekadaya/ui_dir/onemap-fullstack/rtmapping.bash ${clientState.projectName}`,{
+            childSaveMapped = exec(`bash ${pathToApp}/rtmapping.bash ${clientState.projectName}`,{
                         silent: true, 
                         async: true
             });
@@ -255,11 +260,6 @@ io.on("connection", socket => {
                 console.log(`stdout: ${stdout}`);
                 console.log(`stderr: ${stderr}`);
             });
-
-            // childShutdown = exec(`bash /home/rekadaya/ui_dir/onemap-fullstack/shutdown.bash`,{
-            //     silent: true, 
-            //     async: true
-            // });
         }
     });
 
@@ -346,7 +346,7 @@ io.on("connection", socket => {
             }); 
             
             if(serverState.realtimeMapping){
-                childToPCD = exec(`bash /home/rekadaya/ui_dir/onemap-fullstack/topcd.bash ${clientState.projectName}`,{
+                childToPCD = exec(`bash ${pathToApp}/topcd.bash ${clientState.projectName}`,{
                     killSignal: 'SIGINT'
                 }, 
                 function(){
@@ -356,7 +356,7 @@ io.on("connection", socket => {
                     pushFeedMessage({"text": "Export to PCD, done!"});
                 });
             }else{
-                exec(`bash /home/rekadaya/ui_dir/onemap-fullstack/nopcd.bash ${clientState.projectName}`,{
+                exec(`bash ${pathToApp}/nopcd.bash ${clientState.projectName}`,{
                     killSignal: 'SIGINT'
                 }, 
                 function(){
