@@ -67,13 +67,29 @@ fs.writeFile(backendMsgFileDir, JSON.stringify(feedMessages, null, 2), function 
     console.log("writing initial message file");
 });
 
+var driveNum;
+var driveInit;
+var rmvableD_status;
+var rmvableD_index;
+var drives;
+
 const driveStart = async function(){
-    const drives = await drivelist.list();
-    console.log("read drives....")
-    console.log(drives[0].mountpoints);
+    drives = await drivelist.list();
+    driveInit = drives.length;
+    console.log("initializing read drives....");
+    console.log(drives.length);
+}
+
+const driveRead = async function(){
+    drives = await drivelist.list();
+    console.log("read drives....");
+    console.log(drives);
+    console.log(drives.length);
+    return drives.length;
 }
 
 driveStart();
+
 var connectedClient = 0;
 
 function pushFeedMessage (newMessage) {
@@ -277,6 +293,26 @@ io.on("connection", socket => {
                 console.log(`stdout: ${stdout}`);
                 console.log(`stderr: ${stderr}`);
             });
+        }
+    });
+
+    socket.on("rmvableDCheck", async function (data) {
+        console.log("removable drive check...");
+        driveNum = await driveRead();
+        console.log(driveNum);
+        if(driveInit < driveNum){
+            var i;
+            for(i = 0; i < driveNum; i++){
+                if(drives[i].isUSB){
+                    rmvableD_status = true;
+                    rmvableD_index = i;
+                    console.log(`removable device detected on index ${rmvableD_index}`);
+                }
+            }
+            if(rmvableD_status === false) console.log("no removable disk");
+
+            socket.emit("rmvableDStatus", rmvableD_status);
+            if(rmvableD_status) socket.emit("rmvableDProperties", drives[rmvableD_index]);
         }
     });
 

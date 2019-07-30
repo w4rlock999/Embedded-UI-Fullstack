@@ -29,6 +29,7 @@ import FolderIcon from '@material-ui/icons/Folder';
 import MappingIcon from '@material-ui/icons/FlightTakeoff';
 import AboutIcon from '@material-ui/icons/Help';
 import PowerIcon from '@material-ui/icons/PowerSettingsNew';
+import USBIcon from '@material-ui/icons/Usb';
 
 import DialogContentStd from '@material-ui/core/DialogContent';
 
@@ -212,6 +213,11 @@ class App extends React.Component {
     childState = objBuff;
   };
 
+
+  rmvableDCheckClickHandler = () => {
+    socket.emit("rmvableDCheck", true);
+  };
+
   drawerMappingOnClickHandler = () => {
     this.setState({ drawer: "mapping"}, () =>
     this.setState({ mobileOpen: false }));
@@ -228,6 +234,12 @@ class App extends React.Component {
     this.setState({ drawer: "mapping"}, () => {
       this.setState({ mobileOpen: false });
       this.setState({ powerDialogOpen: true});
+    });
+  };
+
+  drawerRmvableDOnCLickHandler = () => {
+    this.setState({ drawer: "removableDrive"}, () => {
+      this.setState({ mobileOpen: false });
     });
   };
 
@@ -269,20 +281,27 @@ class App extends React.Component {
               <ListItemText insert primary="Mapping" />
             </ListItem>
             
-            {/* <ListItem button selected={this.state.drawer === "saved"} onClick={this.drawerSavedOnClickHandler}>
+            <ListItem button selected={this.state.drawer === "saved"} onClick={this.drawerSavedOnClickHandler}>
               <ListItemIcon>
                 <FolderIcon />
               </ListItemIcon>
               <ListItemText insert primary="Saved" />
-            </ListItem> */}
+            </ListItem>
             
+            <ListItem button selected={this.state.drawer === "removableDrive"} onClick={this.drawerRmvableDOnCLickHandler}>
+              <ListItemIcon>
+                <USBIcon />
+              </ListItemIcon>
+              <ListItemText insert primary="Removable Drive" />
+            </ListItem>
+
+            <Divider/>
             <ListItem button selected={this.state.drawer === "power"} onClick={this.drawerPowerOnClickHandler}>
               <ListItemIcon>
                 <PowerIcon />
               </ListItemIcon>
               <ListItemText insert primary="Power" />
             </ListItem>
-
             {/* <ListItem button selected={this.state.drawer === "about"} onClick={this.drawerAboutOnClickHandler}>
               <ListItemIcon>
                 <AboutIcon />
@@ -438,13 +457,20 @@ class App extends React.Component {
 
         { this.state.drawer === "power" && 
           <div class={classes.containerMain}>
-            
-            <Fab style={{margin: 25, paddingLeft: 25, paddingRight: 25}} color="primary" variant="extended">
-              Shut Down
+          </div>
+        }
+        
+        { this.state.drawer === "removableDrive" && 
+          <div class={classes.containerMain}>
+            <p>Removable Drive TODO</p>
+            <Fab style={{margin: 25, paddingLeft: 25, paddingRight: 25}} 
+                 color="primary" variant="extended" 
+                 onClick={this.rmvableDCheckClickHandler}>
+              Check
             </Fab>
             
             <Fab color="primary" variant="extended">
-              Restart
+              HMMMM?
             </Fab>
           </div>
         }

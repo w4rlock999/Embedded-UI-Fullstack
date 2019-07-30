@@ -33,10 +33,12 @@ class folderView extends React.Component {
  
     state = {
         anchorEl: null,
+        folderSelected: null,
     };
        
-    handleClick = event => {
+    handleClick = folder => event => {
         this.setState({anchorEl: event.currentTarget})
+        this.setState({folderSelected: folder})
     };
     
     handleClose = () => {
@@ -63,7 +65,7 @@ class folderView extends React.Component {
                             <IconButton style={styles.iconButton}
                                         aria-owns={anchorEl ? 'folder-menu' : undefined}
                                         aria-haspopup="true"
-                                        onClick={this.handleClick}
+                                        onClick={this.handleClick(projectFolder)}
                             >
                                 <MoreIcon/>
                             </IconButton>
@@ -80,6 +82,7 @@ class folderView extends React.Component {
                 >
                     <MenuItem selected={false} onClick={this.handleClose}>copy to drive</MenuItem>
                     <MenuItem selected={false} onClick={this.handleClose}>delete</MenuItem>
+                    <MenuItem selected={false} onClick={this.handleClose}>{`${this.state.folderSelected}`}</MenuItem>
                 </Menu>
             </div>
         )
