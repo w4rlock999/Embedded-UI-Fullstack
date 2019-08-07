@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "body-parser": "^1.18.3",
+    "diskusage": "^1.1.3",
     "drivelist": "^8.0.6",
     "express": "^4.16.4",
     "ps-tree": "^1.2.0",

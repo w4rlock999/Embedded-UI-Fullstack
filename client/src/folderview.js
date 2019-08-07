@@ -20,7 +20,7 @@ const styles = {
     iconButton: {
         padding: 0,
         margin: 0,
-        marginLeft: 65,
+        float: 'right',
     },
     iconFolder: {
         padding: 0,

@@ -38,14 +38,14 @@ import DialogContent from './dialog'
 import DialogButton from './dialogButton'
 import Timeline from './timeline'
 import FolderView from './folderview'
+import RemovableDrive from './removableDrive';
 import mandrone from './ilus.svg';
 
 import socketIOClient from "socket.io-client"
 import { DialogContentText } from '@material-ui/core';
 import { red } from '@material-ui/core/colors';
 
-import './App.css';
-
+import './Font.css';
 
 const drawerAppBarStyle = {
   height: 150,
@@ -98,7 +98,9 @@ const styles = theme => ({
   containerMain: {
     marginTop: 200,
     marginLeft: 4,
+    marginRight: 4,
     marginBottom: 30,
+    width: '100%',
   },
   titleText: {
       margin: 'auto',
@@ -141,6 +143,8 @@ var serverState = {
 
 var statuses = [];
 var projectFolders = [];
+var removableDiskStatus = false;
+var removableDiskObject = {};
 
 class App extends React.Component {
 
@@ -161,6 +165,8 @@ class App extends React.Component {
     socket.on("mappingRunning", data => (this.setState({ mappingRunning: data})) );
     socket.on("serverMessage", data => (statuses = data));
     socket.on("serverFolderRead", data => (projectFolders = data));
+    socket.on("rmvableDStatus", data => (removableDiskStatus = data));
+    socket.on("rmvableDObject", data => (removableDiskObject = data));
   };
 
   drawerToggleHandler = () => {
@@ -213,9 +219,12 @@ class App extends React.Component {
     childState = objBuff;
   };
 
-
   rmvableDCheckClickHandler = () => {
     socket.emit("rmvableDCheck", true);
+  };
+
+  rmvableDEjectClickHandler = () => {
+    socket.emit("rmvableDEject", true);
   };
 
   drawerMappingOnClickHandler = () => {
@@ -263,7 +272,7 @@ class App extends React.Component {
     const drawer = (
       <div>
         <div className={classes.Toolbar} />
-        <AppBar style={drawerAppBarStyle} color="white" position="static">
+        {/* <AppBar style={drawerAppBarStyle} color="white" position="static">
           <Toolbar>
             <TypoGraphy variant="subheading"
                         color="inherit"
@@ -271,9 +280,12 @@ class App extends React.Component {
                  
             </TypoGraphy>           
           </Toolbar>
-        </AppBar>
+        </AppBar> */}
         
-        <List>
+        <div style={{height: 145, width: '100%', backgroundColor:'#FFDE03'}}>
+        </div>
+        <Divider/>
+        <List style={{margin: 0, padding: 0}}>
             <ListItem button selected={this.state.drawer === "mapping"} onClick={this.drawerMappingOnClickHandler}>
               <ListItemIcon>
                 <MappingIcon />
@@ -285,7 +297,7 @@ class App extends React.Component {
               <ListItemIcon>
                 <FolderIcon />
               </ListItemIcon>
-              <ListItemText insert primary="Saved" />
+              <ListItemText insert primary="Saved Projects" />
             </ListItem>
             
             <ListItem button selected={this.state.drawer === "removableDrive"} onClick={this.drawerRmvableDOnCLickHandler}>
@@ -333,8 +345,25 @@ class App extends React.Component {
             <TypoGraphy variant="title"
                         color="inherit">
               <p className={classes.titleTextContent}>
-                <span>Mapper</span>
-                <span className={classes.titleTextContentBold}>App</span>       
+                { this.state.drawer === "mapping" &&
+                  <div>
+                    <span>Mapper</span>
+                    <span className={classes.titleTextContentBold}>App</span>       
+                  </div>
+                }
+                
+                { this.state.drawer === "saved" &&
+                  <div>
+                    <span>Saved Projects</span>
+                    {/* <span className={classes.titleTextContentBold}>App</span>        */}
+                  </div>
+                }
+                
+                { this.state.drawer === "removableDrive" &&
+                  <div>
+                    <span>Removable Drive</span>
+                  </div>
+                }                                
               </p>
             </TypoGraphy>
           </div>
@@ -386,13 +415,13 @@ class App extends React.Component {
             </div>
             <List style={{margin: 0, marginTop: 65, padding: 0}}>
               {/* <Divider/> */}
-              <ListItem button style={{backgroundColor:"#000080",}} onClick={this.shutdownOnClickHandler}>
+              <ListItem button style={{backgroundColor:"#D50000",}} onClick={this.shutdownOnClickHandler}>
                 <div style={{padding: 2, width: '100%', textAlign:"center"}}>
                   <b style={{color:"white", fontFamily: "samsung-one-400"}}>Power Off</b>
                 </div>
               </ListItem>
               {/* <Divider/> */}
-              <ListItem button style={{marginTop: 10, backgroundColor:"#800080",}} onClick={this.restartOnClickHandler}> 
+              <ListItem button style={{marginTop: 10, backgroundColor:"#4527A0",}} onClick={this.restartOnClickHandler}> 
                 <div style={{ padding: 2, width: '100%', textAlign:'center'}}>
                   <b style={{color:"white", fontFamily: "samsung-one-400"}}>Restart</b>
                 </div>
@@ -460,19 +489,17 @@ class App extends React.Component {
           </div>
         }
         
-        { this.state.drawer === "removableDrive" && 
-          <div class={classes.containerMain}>
-            <p>Removable Drive TODO</p>
-            <Fab style={{margin: 25, paddingLeft: 25, paddingRight: 25}} 
-                 color="primary" variant="extended" 
-                 onClick={this.rmvableDCheckClickHandler}>
-              Check
-            </Fab>
-            
-            <Fab color="primary" variant="extended">
-              HMMMM?
-            </Fab>
-          </div>
+        { this.state.drawer === "removableDrive" && (
+            <div class={classes.containerMain} style={{textAlign: 'center',}}>
+              {/* <div style={{display: 'inline-block'}}> */}
+                <RemovableDrive 
+                status={removableDiskStatus}
+                object={removableDiskObject}
+                checkOnClickHandler={this.rmvableDCheckClickHandler} 
+                ejectOnClickHandler={this.rmvableDEjectClickHandler}/>
+              {/* </div>   */}
+            </div>
+          )
         }
 
         { this.state.drawer === "about" && 
@@ -481,7 +508,7 @@ class App extends React.Component {
           </div>
         }
         
-        
+
         {/* <div class={classes.containerMain}>
          <Timeline open={false} statusPushed={statuses}/>
         </div>)  */}

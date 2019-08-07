@@ -2,6 +2,7 @@ const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
 const drivelist = require('drivelist');
+const diskusage = require('diskusage');
 var exec = require('child_process').exec;
 var spawn = require('child_process').spawn;
 var execSync = require('child_process').execSync;
@@ -70,6 +71,12 @@ fs.writeFile(backendMsgFileDir, JSON.stringify(feedMessages, null, 2), function 
 var driveNum;
 var driveInit;
 var rmvableD_status;
+var rmvableD_object = {
+    name: "",
+    mountPoint: "",
+    freeSpace: 0.0,
+    totalSpace: 0.0,
+};
 var rmvableD_index;
 var drives;
 
@@ -311,8 +318,35 @@ io.on("connection", socket => {
             }
             if(rmvableD_status === false) console.log("no removable disk");
 
-            socket.emit("rmvableDStatus", rmvableD_status);
-            if(rmvableD_status) socket.emit("rmvableDProperties", drives[rmvableD_index]);
+
+            // if(rmvableD_status) socket.emit("rmvableDProperties", drives[rmvableD_index]);
+            if(rmvableD_status) {
+                // console.log(drives[rmvableD_index].mountpoints[0]);
+                rmvableD_object.name = drives[rmvableD_index].mountpoints[0].label;
+                rmvableD_object.mountPoint = drives[rmvableD_index].mountpoints[0].path;
+                console.log(`removable drive name ${rmvableD_object.name}`);
+                console.log(`removable drive name ${rmvableD_object.mountPoint}`);
+
+                try {
+
+                    const diskRead = await diskusage.check(rmvableD_object.mountPoint);
+                    rmvableD_object.freeSpace = diskRead.free;
+                    rmvableD_object.totalSpace = diskRead.total; 
+                    console.log(`Free space: ${diskRead.free}`);
+
+                    socket.emit("rmvableDObject", rmvableD_object);
+                    socket.broadcast.emit("rmvableDObject", rmvableD_object);
+                    console.log(`emit ${rmvableD_object}`);
+
+                    socket.emit("rmvableDStatus", rmvableD_status);
+                    socket.broadcast.emit("rmvableDStatus", rmvableD_status);
+                } catch (err) {
+                    console.error(err)
+                }                
+                // rmvableD_object.freeSpace = ;
+                // rmvableD_object.totalSpace = ;
+            }
+            
         }
     });
 
@@ -320,6 +354,7 @@ io.on("connection", socket => {
         console.log(items);
         console.log("read folders");
         socket.emit("serverFolderRead", items);
+        socket.broadcast.emit("serverFolderRead", items);
     });
 
     socket.on("clientFolderRead", function (data) {
@@ -327,6 +362,7 @@ io.on("connection", socket => {
             console.log(items);
             console.log("read folders");
             socket.emit("serverFolderRead", items);
+            socket.broadcast.emit("serverFolderRead", items);
         });
     });
 
