@@ -407,6 +407,7 @@ class App extends React.Component {
         <Dialog
           open={this.state.powerDialogOpen}
           onClose={this.powerDialogCloseHandler}
+          style={{fontFamily: "samsung-one-600"}}
         >
           <DialogTitle>Device Power</DialogTitle>
           <DialogContentStd > 
@@ -415,15 +416,15 @@ class App extends React.Component {
             </div>
             <List style={{margin: 0, marginTop: 65, padding: 0}}>
               {/* <Divider/> */}
-              <ListItem button style={{backgroundColor:"#D50000",}} onClick={this.shutdownOnClickHandler}>
+              <ListItem button style={{ background: 'linear-gradient(90deg, #d32e2f 30%, #e53835 90%)', borderRadius: '8px'}} onClick={this.shutdownOnClickHandler}>
                 <div style={{padding: 2, width: '100%', textAlign:"center"}}>
                   <b style={{color:"white", fontFamily: "samsung-one-400"}}>Power Off</b>
                 </div>
               </ListItem>
               {/* <Divider/> */}
-              <ListItem button style={{marginTop: 10, backgroundColor:"#4527A0",}} onClick={this.restartOnClickHandler}> 
+              <ListItem button style={{marginTop: 10, border: '1px #d32e2f solid', borderRadius: '8px'}} onClick={this.restartOnClickHandler}> 
                 <div style={{ padding: 2, width: '100%', textAlign:'center'}}>
-                  <b style={{color:"white", fontFamily: "samsung-one-400"}}>Restart</b>
+                  <b style={{color:' #d32e2f', fontFamily: "samsung-one-400"}}>Restart</b>
                 </div>
               </ListItem>
               {/* <Divider/> */}

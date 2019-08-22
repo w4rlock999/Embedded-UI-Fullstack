@@ -1,3 +1,4 @@
+
 .baseContainer {
     padding: 0px;
     margin: 0px; 
@@ -7,7 +8,7 @@
     content: '';
     width: 3px;
     position: fixed;
-    background-color: orangered;
+    background-color: #d32e2f;
     top: 0;
     bottom: 0;
     /* left: 10%; */
@@ -24,20 +25,17 @@
 
 .timestamp {
     background: navy;
-    padding-top: 6px;
-    padding-left: 7px;
     /* text-align: center; */
     height: 25px;
     width: 55px; 
-    font-size: 7pt;
     z-index: 1;
-    font-family: Arial, Helvetica, sans-serif;
+    text-align: center;
 }
 
 .timestamp-text {
     color: white;
     margin: 0px;
-    padding: 0px;
+    padding: 4px 0 5px 0;
  
 }
 
@@ -53,10 +51,9 @@
 
 .timeline-text {
     padding: 0px;
-    padding-top: 5px;
+    padding-top: 0px;
     padding-left: 5px;
     margin: 0px;
     color: black;
-    font-size: 11pt;
-    font-family: Arial, Helvetica, sans-serif;
+    font-size: calc(11pt + (13 - 11) * ((100vw - 300px) / (1600 - 300)));
 }

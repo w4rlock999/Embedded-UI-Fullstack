@@ -287,6 +287,7 @@ io.on("connection", socket => {
     });
 
     socket.on("restart", function (data) {
+        
         console.log(`restart signal got,value: ${data}`);
         if(data){
             
@@ -303,51 +304,66 @@ io.on("connection", socket => {
         }
     });
 
+    socket.on("rmvableDEject", function (data) {
+        
+        console.log("ejecting...");
+        exec(`umount "${rmvableD_object.mountPoint}" `, (error, stdout, stderr) => {
+            console.log("command called: eject");
+            
+            if (error) {
+                console.error(`exec error: ${error}`);
+                return;
+            }
+            console.log(`stdout: ${stdout}`);
+            console.log(`stderr: ${stderr}`);
+        });
+    });
+    
     socket.on("rmvableDCheck", async function (data) {
         console.log("removable drive check...");
         driveNum = await driveRead();
         console.log(driveNum);
-        if(driveInit < driveNum){
-            var i;
-            for(i = 0; i < driveNum; i++){
-                if(drives[i].isUSB){
-                    rmvableD_status = true;
-                    rmvableD_index = i;
-                    console.log(`removable device detected on index ${rmvableD_index}`);
-                }
+        // if(driveInit < driveNum){
+        var i;
+        for(i = 0; i < driveNum; i++){
+            if(drives[i].isUSB){
+                rmvableD_status = true;
+                rmvableD_index = i;
+                console.log(`removable device detected on index ${rmvableD_index}`);
             }
-            if(rmvableD_status === false) console.log("no removable disk");
-
-
-            // if(rmvableD_status) socket.emit("rmvableDProperties", drives[rmvableD_index]);
-            if(rmvableD_status) {
-                // console.log(drives[rmvableD_index].mountpoints[0]);
-                rmvableD_object.name = drives[rmvableD_index].mountpoints[0].label;
-                rmvableD_object.mountPoint = drives[rmvableD_index].mountpoints[0].path;
-                console.log(`removable drive name ${rmvableD_object.name}`);
-                console.log(`removable drive name ${rmvableD_object.mountPoint}`);
-
-                try {
-
-                    const diskRead = await diskusage.check(rmvableD_object.mountPoint);
-                    rmvableD_object.freeSpace = diskRead.free;
-                    rmvableD_object.totalSpace = diskRead.total; 
-                    console.log(`Free space: ${diskRead.free}`);
-
-                    socket.emit("rmvableDObject", rmvableD_object);
-                    socket.broadcast.emit("rmvableDObject", rmvableD_object);
-                    console.log(`emit ${rmvableD_object}`);
-
-                    socket.emit("rmvableDStatus", rmvableD_status);
-                    socket.broadcast.emit("rmvableDStatus", rmvableD_status);
-                } catch (err) {
-                    console.error(err)
-                }                
-                // rmvableD_object.freeSpace = ;
-                // rmvableD_object.totalSpace = ;
-            }
-            
         }
+        if(rmvableD_status === false) console.log("no removable disk");
+
+
+        // if(rmvableD_status) socket.emit("rmvableDProperties", drives[rmvableD_index]);
+        if(rmvableD_status) {
+            // console.log(drives[rmvableD_index].mountpoints[0]);
+            rmvableD_object.name = drives[rmvableD_index].mountpoints[0].label;
+            rmvableD_object.mountPoint = drives[rmvableD_index].mountpoints[0].path;
+            console.log(`removable drive name ${rmvableD_object.name}`);
+            console.log(`removable drive mountpoint ${rmvableD_object.mountPoint}`);
+
+            try { 
+
+                const diskRead = await diskusage.check(rmvableD_object.mountPoint);
+                rmvableD_object.freeSpace = diskRead.free;
+                rmvableD_object.totalSpace = diskRead.total; 
+                console.log(`Free space: ${diskRead.free}`);
+
+                socket.emit("rmvableDObject", rmvableD_object);
+                socket.broadcast.emit("rmvableDObject", rmvableD_object);
+                console.log(`emit ${rmvableD_object}`);
+
+                socket.emit("rmvableDStatus", rmvableD_status);
+                socket.broadcast.emit("rmvableDStatus", rmvableD_status);
+            } catch (err) {
+                console.error(err)
+            }                
+            // rmvableD_object.freeSpace = ;
+            // rmvableD_object.totalSpace = ;
+        }
+            
+        // }
     });
 
     fs.readdir(pathToProject, function(err, items) {

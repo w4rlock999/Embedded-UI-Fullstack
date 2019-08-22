@@ -5,6 +5,8 @@ import Paper from '@material-ui/core/Paper';
 import './timeline.css';
 import Typography from '@material-ui/core/Typography';
 
+import './Font.css';
+
 function timeline(props) {
 
     // const { classes } = props;
@@ -19,11 +21,13 @@ function timeline(props) {
                 <div className="blockContainer">
                     
                     <div className="timestamp">
-                        <p className="timestamp-text">{status.time}</p>
+                        <p className="timestamp-text" style={{fontFamily: 'samsung-one-600', fontSize: '12px'}}>
+                            {status.time}
+                        </p>
                     </div>
                     <div className="paperContainer" >
                         <Paper className="paper" elevation={1}>
-                                <p className="timeline-text">
+                                <p className="timeline-text" style={{fontFamily:'samsung-one-400'}}>
                                     {/* <Typography variant="subtitle1" > */}
                                         {status.text} 
                                     {/* </Typography> */}

@@ -13,9 +13,11 @@ import Typography from '@material-ui/core/Typography';
 import { Menu, MenuList } from '@material-ui/core';
 import MenuItem from '@material-ui/core/MenuItem';
 
+import './Font.css';
 
 const styles = {
     baseContainer: {
+        fontFamily: "samsung-one-400",
     },
     iconButton: {
         padding: 0,
@@ -61,7 +63,12 @@ class folderView extends React.Component {
                             <ListItemIcon style={styles.iconFolder}>
                                 <FolderIcon/>
                             </ListItemIcon>
-                            <ListItemText insert primary={projectFolder} />
+                            <ListItemText insert 
+                                        disableTypography 
+                                        primary={<Typography type="body2" style={{fontFamily: 'samsung-one-600', fontSize: '14px'}}>
+                                                 {projectFolder} 
+                                                 </Typography>} 
+                            />
                             <IconButton style={styles.iconButton}
                                         aria-owns={anchorEl ? 'folder-menu' : undefined}
                                         aria-haspopup="true"
@@ -82,7 +89,7 @@ class folderView extends React.Component {
                 >
                     <MenuItem selected={false} onClick={this.handleClose}>copy to drive</MenuItem>
                     <MenuItem selected={false} onClick={this.handleClose}>delete</MenuItem>
-                    <MenuItem selected={false} onClick={this.handleClose}>{`${this.state.folderSelected}`}</MenuItem>
+                    {/* <MenuItem selected={false} onClick={this.handleClose}>{`${this.state.folderSelected}`}</MenuItem> */}
                 </Menu>
             </div>
         )
