@@ -307,7 +307,7 @@ io.on("connection", socket => {
     socket.on("rmvableDEject", function (data) {
         
         console.log("ejecting...");
-        exec(`umount "${rmvableD_object.mountPoint}" `, (error, stdout, stderr) => {
+        exec(`umount "${rmvableD_object.mountPoint}" `, async (error, stdout, stderr) => {
             console.log("command called: eject");
             
             if (error) {
@@ -316,6 +316,30 @@ io.on("connection", socket => {
             }
             console.log(`stdout: ${stdout}`);
             console.log(`stderr: ${stderr}`);
+
+            console.log("removable drive check...");
+            driveNum = await driveRead();
+            console.log(driveNum);
+            // if(driveInit < driveNum){
+            var i;
+            for(i = 0; i < driveNum; i++){
+                if(drives[i].isUSB){
+                    console.log("mountpoints after eject::");
+                    console.log(drives[i].mountpoints.length);
+                    if(drives[i].mountpoints.length){
+                        rmvableD_status = true;
+                        rmvableD_index = i;
+                        console.log(`removable device detected on index ${rmvableD_index}`);
+                    }else{
+                        console.log(`removable device unmounted`);
+
+                        rmvableD_status = false;
+                        socket.emit("rmvableDStatus", rmvableD_status);
+                        socket.broadcast.emit("rmvableDStatus", rmvableD_status);
+                    }
+                }
+            }
+            if(rmvableD_status === false) console.log("no removable disk");
         });
     });
     
