@@ -30,6 +30,7 @@ import MappingIcon from '@material-ui/icons/FlightTakeoff';
 import AboutIcon from '@material-ui/icons/Help';
 import PowerIcon from '@material-ui/icons/PowerSettingsNew';
 import USBIcon from '@material-ui/icons/Usb';
+import MagCalibIcon from '@material-ui/icons/AllInclusive';
 
 import DialogContentStd from '@material-ui/core/DialogContent';
 
@@ -39,6 +40,7 @@ import DialogButton from './dialogButton'
 import Timeline from './timeline'
 import FolderView from './folderview'
 import RemovableDrive from './removableDrive';
+import MagnetoCalib from './magnetoCalib';
 import mandrone from './ilus.svg';
 
 import socketIOClient from "socket.io-client"
@@ -227,6 +229,10 @@ class App extends React.Component {
     socket.emit("rmvableDEject", true);
   };
 
+  calibStartClickHandler = () => {
+    socket.emit("magnetoCalibStart",true);
+  };
+
   drawerMappingOnClickHandler = () => {
     this.setState({ drawer: "mapping"}, () =>
     this.setState({ mobileOpen: false }));
@@ -246,8 +252,14 @@ class App extends React.Component {
     });
   };
 
-  drawerRmvableDOnCLickHandler = () => {
+  drawerRmvableDOnClickHandler = () => {
     this.setState({ drawer: "removableDrive"}, () => {
+      this.setState({ mobileOpen: false });
+    });
+  };
+
+  drawerMagnetoCalibClickHandler = () => {
+    this.setState({ drawer: "magnetoCalib"}, () => {
       this.setState({ mobileOpen: false });
     });
   };
@@ -300,11 +312,18 @@ class App extends React.Component {
               <ListItemText insert primary="Saved Projects" />
             </ListItem>
             
-            <ListItem button selected={this.state.drawer === "removableDrive"} onClick={this.drawerRmvableDOnCLickHandler}>
+            <ListItem button selected={this.state.drawer === "removableDrive"} onClick={this.drawerRmvableDOnClickHandler}>
               <ListItemIcon>
                 <USBIcon />
               </ListItemIcon>
               <ListItemText insert primary="Removable Drive" />
+            </ListItem>
+
+            <ListItem button selected={this.state.drawer === "magnetoCalib"} onClick={this.drawerMagnetoCalibClickHandler}>
+              <ListItemIcon>
+                <MagCalibIcon />
+              </ListItemIcon>
+              <ListItemText insert primary="Calibration" /> 
             </ListItem>
 
             <Divider/>
@@ -314,6 +333,8 @@ class App extends React.Component {
               </ListItemIcon>
               <ListItemText insert primary="Power" />
             </ListItem>
+            
+            
             {/* <ListItem button selected={this.state.drawer === "about"} onClick={this.drawerAboutOnClickHandler}>
               <ListItemIcon>
                 <AboutIcon />
@@ -326,6 +347,9 @@ class App extends React.Component {
 
     return (
       <div className={classes.root} style={{minHeight: '100vh'}}>
+
+        {/* //------------------------- AppBar Render
+        //--------------------------------------- */}
 
         <CssBaseline/>
         <AppBar className={classes.appBar} position="fixed">
@@ -363,12 +387,23 @@ class App extends React.Component {
                   <div>
                     <span>Removable Drive</span>
                   </div>
-                }                                
+                }
+                
+                { this.state.drawer === "magnetoCalib" &&
+                  <div>
+                    <span>Compass Calibration</span>
+                  </div>
+                }                
+                                                
               </p>
             </TypoGraphy>
           </div>
         </AppBar>
         
+
+        {/* //--------------------Drawer Render
+        //--------------------------------- */}
+
         <nav className={classes.drawer}> 
           <Hidden smUp implementation="css">
             <Drawer
@@ -397,12 +432,16 @@ class App extends React.Component {
           </Hidden>
         </nav>
         
+
         { this.state.drawer === "mapping" && 
           <FabOne onClickStart={this.startDialogOpenHandler}
                   onClickStop={this.stopDialogOpenHandler} 
                   mappingRunningState={this.state.mappingRunning}
           />
         }
+
+        {/* //------------------ Power Dialog Render
+        //-------------------------------------- */}
 
         <Dialog
           open={this.state.powerDialogOpen}
@@ -432,6 +471,9 @@ class App extends React.Component {
           </DialogContentStd>
         </Dialog>
 
+        {/* //-------------------- Start Mapping Dialog Render
+        //------------------------------------------------ */}
+
         <Dialog
           open={this.state.startDialogOpen}
           onClose={this.startDialogCloseHandler}
@@ -446,6 +488,9 @@ class App extends React.Component {
               <DialogButton dialogState={this.state.startDialogPhase} onClick={this.startDialogClickHandler}/>
           </DialogActions>
         </Dialog>
+
+        {/* //--------------------- Stop Mapping Dialog Render
+        //------------------------------------------------ */}
 
         <Dialog
           open={this.state.stopDialogOpen}
@@ -473,6 +518,9 @@ class App extends React.Component {
           </DialogActions>
         </Dialog>   
 
+        {/* //------------------------ Main View Render
+        //----------------------------------------- */}
+
         { this.state.drawer === "mapping" && 
           <div class={classes.containerMain}>
             <Timeline statusPushed={statuses}/>
@@ -499,6 +547,14 @@ class App extends React.Component {
                 checkOnClickHandler={this.rmvableDCheckClickHandler} 
                 ejectOnClickHandler={this.rmvableDEjectClickHandler}/>
               {/* </div>   */}
+            </div>
+          )
+        }
+
+        { this.state.drawer === "magnetoCalib" && (
+            <div class={classes.containerMain}>
+              <MagnetoCalib
+              calibStartOnClickHandler={this.calibStartClickHandler}/>
             </div>
           )
         }
