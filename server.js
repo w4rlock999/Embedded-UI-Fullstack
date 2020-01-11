@@ -45,6 +45,7 @@ var clientState = {
 
 let childRoscore;
 let childBagPlayer; //sementara, ganti dengan mapping launch file
+let childMagnetoCalibLauncher;
 let childMapperLauncher;
 let childTrajectoryLogger;
 let childLidarMapping;
@@ -414,6 +415,20 @@ io.on("connection", socket => {
         console.log(`record bag ${clientState.recordBag}`);
         console.log(`RT mapping ${clientState.realtimeMapping}`);
         console.log(`azimuth ${clientState.azimuth}`);
+    });
+
+    socket.on("magnetoCalibStart", function (data) {
+        if(data == true) {
+
+            childMagnetoCalibLauncher = exec('roslaunch sbg_driver calibration_sbg_ellipse.launch',{
+                silent: true,
+                async: true
+            });
+            pushFeedMessage({"text": "Magnetic Calibration Start"});
+
+        }else{
+            kill(childMagnetoCalibLauncher.pid, 'SIGINT');
+        }
     });
 
     socket.on("mappingStart", function (data) {
