@@ -33,7 +33,8 @@ var serverState = {
     runTrajectoryLogger: false,
     runLidarMapper: false,
     recordBag: false,
-    realtimeMapping: false
+    realtimeMapping: false,
+    magnetoCalib: "not ready",
 };
 var clientState = {
     projectName: "",
@@ -46,6 +47,7 @@ var clientState = {
 let childRoscore;
 let childBagPlayer; //sementara, ganti dengan mapping launch file
 let childMagnetoCalibLauncher;
+let childMagnetoCalibStart;
 let childMapperLauncher;
 let childTrajectoryLogger;
 let childLidarMapping;
@@ -417,19 +419,38 @@ io.on("connection", socket => {
         console.log(`azimuth ${clientState.azimuth}`);
     });
 
-    socket.on("magnetoCalibStart", function (data) {
+    socket.on("magnetoCalibLaunch", function (data) {
         if(data == true) {
 
             childMagnetoCalibLauncher = exec('roslaunch sbg_driver calibration_sbg_ellipse.launch',{
                 silent: true,
                 async: true
+            }, function(){   
+                serverState.magnetoCalib = "ready";
+                console.log(`calib mag ${serverState.magnetoCalib}`);
+                socket.emit("magnetoCalibState","ready");                               
             });
-            pushFeedMessage({"text": "Magnetic Calibration Start"});
-
+            
         }else{
+
             kill(childMagnetoCalibLauncher.pid, 'SIGINT');
+            serverState.magnetoCalib = "not ready";
+            console.log(`calib mag ${serverState.magnetoCalib}`);
+            socket.emit("magnetoCalibState","not ready");            
         }
     });
+
+    // socket.on("magnetoCalibStart", function (data){
+    //     if(data == true) {
+
+    //         childMagnetoCalibStart.exec('rosservice call mag_calibration',{
+    //             silent: true,
+    //             async: true
+    //         }, function(){
+                
+    //         });
+
+    // });
 
     socket.on("mappingStart", function (data) {
         if(data == true) {

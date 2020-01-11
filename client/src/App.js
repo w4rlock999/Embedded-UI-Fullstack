@@ -230,7 +230,7 @@ class App extends React.Component {
   };
 
   calibStartClickHandler = () => {
-    socket.emit("magnetoCalibStart",true);
+    socket.emit("magnetoCalibLaunch",true);
   };
 
   drawerMappingOnClickHandler = () => {
