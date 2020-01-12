@@ -41,9 +41,9 @@ class magnetoCalib extends React.Component {
     
     render() {
 
-        // magnetoCalibState = this.props.magnetoCalibState;
+        magnetoCalibState = this.props.magnetoCalibState;
 
-        magnetoCalibState = "calibrating"
+        // magnetoCalibState = "calibrating"
 
         return (
             <div style={styles.root}>
@@ -55,7 +55,7 @@ class magnetoCalib extends React.Component {
                                         paddingRight: 25, width: 140,
                                         fontFamily: "samsung-one-600"}} 
                                 color="primary" variant="extended" 
-                                onClick={this.props.calibStartOnClickHandler}>
+                                onClick={this.props.calibLaunchOnClickHandler}>
                                 Calibrate
                             </Fab>
                         </div>      
@@ -74,7 +74,7 @@ class magnetoCalib extends React.Component {
                                         paddingRight: 25, width: 140,
                                         fontFamily: "samsung-one-600"}} 
                                 color="primary" variant="extended" 
-                                onClick={this.props.calibMoveOnClickHandler}>
+                                onClick={this.props.calibStartOnClickHandler}>
                                 Start
                             </Fab>
                         </div>    
@@ -106,7 +106,7 @@ class magnetoCalib extends React.Component {
                                         paddingRight: 25, width: 140,
                                         fontFamily: "samsung-one-600"}} 
                                 color="primary" variant="extended" 
-                                onClick={this.props.calibStopMoveOnClickHandler}>
+                                onClick={this.props.calibStopOnClickHandler}>
                                 Start
                             </Fab>
                         </div>    

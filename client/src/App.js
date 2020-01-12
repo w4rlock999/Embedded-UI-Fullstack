@@ -159,6 +159,7 @@ class App extends React.Component {
     powerDialogOpen: false,
     endpoint: "http://localhost:5000",
     drawer: "mapping",
+    magnetoCalib: "not ready",
   };
   
   componentDidMount() {
@@ -169,6 +170,7 @@ class App extends React.Component {
     socket.on("serverFolderRead", data => (projectFolders = data));
     socket.on("rmvableDStatus", data => (removableDiskStatus = data));
     socket.on("rmvableDObject", data => (removableDiskObject = data));
+    socket.on("magnetoCalibState", data => (this.setState({ magnetoCalib: data})) );
   };
 
   drawerToggleHandler = () => {
@@ -221,16 +223,32 @@ class App extends React.Component {
     childState = objBuff;
   };
 
+  calibLaunchClickHandler = () => {
+    socket.emit("magnetoCalibLaunch",true);
+  };
+
+  calibCloseClickHandler = () => {
+    socket.emit("magnetoCalibLaunch",false);
+  };
+
+  calibStartClickHandler = () => {
+    socket.emit("magnetoCalibStart",true);
+  };
+
+  calibStopClickHandler = () => {
+    socket.emit("magnetoCalibStart",false);
+  };
+
+  calibSaveClickHandler = () => {
+    socket.emit("magnetoCalibSave",true);
+  };
+
   rmvableDCheckClickHandler = () => {
     socket.emit("rmvableDCheck", true);
   };
 
   rmvableDEjectClickHandler = () => {
     socket.emit("rmvableDEject", true);
-  };
-
-  calibStartClickHandler = () => {
-    socket.emit("magnetoCalibLaunch",true);
   };
 
   drawerMappingOnClickHandler = () => {
@@ -554,7 +572,13 @@ class App extends React.Component {
         { this.state.drawer === "magnetoCalib" && (
             <div class={classes.containerMain}>
               <MagnetoCalib
-              calibStartOnClickHandler={this.calibStartClickHandler}/>
+              magnetoCalibState={this.state.magnetoCalib}
+              calibLaunchOnClickHandler={this.calibLaunchClickHandler}
+              calibStartOnClickHandler={this.calibStartClickHandler}
+              calibStopOnClickHandler={this.calibStopClickHandler}
+              calibSaveOnClickHandler={this.calibSaveClickHandler}
+              calibCloseOnClickHandler={this.calibCloseClickHandler}
+              />
             </div>
           )
         }
