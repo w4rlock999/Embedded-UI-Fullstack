@@ -30,16 +30,18 @@ const styles={
 
 }
 
-var calibState = "initial";
+var magnetoCalibState = "not ready";
 
 class magnetoCalib extends React.Component {
     
     
     render() {
 
+        magnetoCalibState = this.props.magnetoCalibState;
+
         return (
             <div style={styles.root}>
-                { calibState === "initial" &&  
+                { magnetoCalibState === "not ready" &&  
                     (<div>
                         <p style={styles.headerText}>Tap below to calibrate magnetometer compass</p>
                         <div style={styles.fabContainer}>
@@ -51,6 +53,57 @@ class magnetoCalib extends React.Component {
                                 Calibrate
                             </Fab>
                         </div>      
+                    </div>)
+                } 
+ 
+                { magnetoCalibState === "ready" &&
+                    (<div>
+                        <p style={styles.subHeaderText}>Calib result:</p>
+                        <br/>
+                        <br/>
+                        <br/>
+                        <br/>
+                        <div style={styles.fabContainer}>
+                            <Fab style={{display: 'inline-block', margin: 'auto', paddingLeft: 25, 
+                                        paddingRight: 25, width: 140,
+                                        fontFamily: "samsung-one-600"}} 
+                                color="primary" variant="extended" 
+                                onClick={this.props.calibMoveOnClickHandler}>
+                                Start
+                            </Fab>
+                        </div>    
+                        <div style={styles.fabContainer}>
+                            <Fab style={{display: 'inline-block', margin: 'auto', paddingLeft: 25, 
+                                        paddingRight: 25, width: 140,
+                                        fontFamily: "samsung-one-600"}} 
+                                color="primary" variant="extended" 
+                                onClick={this.props.calibSaveOnClickHandler}>
+                                Save
+                            </Fab>
+                        </div>    
+                        <div style={styles.fabContainer}>
+                            <Fab style={{display: 'inline-block', margin: 'auto', paddingLeft: 25, 
+                                        paddingRight: 25, width: 140,
+                                        fontFamily: "samsung-one-600"}} 
+                                color="primary" variant="extended" 
+                                onClick={this.props.calibCloseOnClickHandler}>
+                                Close
+                            </Fab>
+                        </div>    
+                    </div>)
+                }
+
+                { magnetoCalibState === "calibrating" &&
+                    (<div>
+                        <div style={styles.fabContainer}>
+                            <Fab style={{display: 'inline-block', margin: 'auto', paddingLeft: 25, 
+                                        paddingRight: 25, width: 140,
+                                        fontFamily: "samsung-one-600"}} 
+                                color="primary" variant="extended" 
+                                onClick={this.props.calibStopMoveOnClickHandler}>
+                                Start
+                            </Fab>
+                        </div>    
                     </div>)
                 }
             </div>

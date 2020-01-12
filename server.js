@@ -465,8 +465,8 @@ io.on("connection", socket => {
                 silent: true,
                 async: true
             }, function(){
-                serverState.magnetoCalib = "start";
-                socket.emit("magnetoCalibState","start");
+                serverState.magnetoCalib = "calibrating";
+                socket.emit("magnetoCalibState","calibrating");
                 console.log("move start calib");                    
             });
         }else{
