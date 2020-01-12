@@ -434,9 +434,12 @@ io.on("connection", socket => {
             childMagnetoCalibLauncher.stdout.on('data', (data)=> {
                 console.log('magnetocalib log:' + data );
                 
-                var calibOutput = toString(data);
-                if(calibOutput.includes('Accuracy')){
-                    var calibAccuracy = calibOutput.substring(calibOutput.search('Accuracy'));
+                var calibOutput = data;
+                // console.log('CALIBOUTPUT log:' +  calibOutput );
+                if(calibOutput.includes("Accuracy")){
+                    console.log("accuracy foun");
+                    var stringPos = calibOutput.search('Accuracy');
+                    var calibAccuracy = calibOutput.substring(stringPos,stringPos+29);
                     socket.emit("magnetoCalibAccuracy", calibAccuracy);
                 }
             });
