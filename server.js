@@ -181,6 +181,7 @@ if (require.main === module) {
 var prevLidarDataOK = false;
 var prevGpsPositionOK = false;
 
+
 const timerCallback = async socket => {
 
     try {
@@ -422,21 +423,16 @@ io.on("connection", socket => {
 
     socket.on("magnetoCalibLaunch", function (data) {
         if(data == true) {
+            childMagnetoCalibLauncher = spawn('stdbuf',['-o', '0', 'roslaunch', 'sbg_driver', 'calibration_sbg_ellipse.launch']);
 
-            // childMagnetoCalibLauncher = exec('roslaunch sbg_driver calibration_sbg_ellipse.launch',{
-            //     silent: true,
-            //     async: true
-            // });
-
-            childMagnetoCalibLauncher = spawn('roslaunch',['sbg_driver', 'calibration_sbg_ellipse.launch']);
-            
             //better to be moved on node listener
             serverState.magnetoCalib = "ready";
             console.log(`calib mag ${serverState.magnetoCalib}`);
             socket.emit("magnetoCalibState","ready");
-        
+            
+            childMagnetoCalibLauncher.stdout.setEncoding('utf8');
             childMagnetoCalibLauncher.stdout.on('data', (data)=> {
-                console.log(`magnetocalib log: ${data}`);
+                console.log('magnetocalib log:' + data );
             });
         
             childMagnetoCalibLauncher.stderr.on('data', (data)=> {

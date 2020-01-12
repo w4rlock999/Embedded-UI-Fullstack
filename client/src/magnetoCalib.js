@@ -43,7 +43,7 @@ class magnetoCalib extends React.Component {
 
         magnetoCalibState = this.props.magnetoCalibState;
 
-        // magnetoCalibState = "calibrating"
+        // magnetoCalibState = "ready"
 
         return (
             <div style={styles.root}>
@@ -107,7 +107,7 @@ class magnetoCalib extends React.Component {
                                         fontFamily: "samsung-one-600"}} 
                                 color="primary" variant="extended" 
                                 onClick={this.props.calibStopOnClickHandler}>
-                                Start
+                                Stop
                             </Fab>
                         </div>    
                     </div>)
