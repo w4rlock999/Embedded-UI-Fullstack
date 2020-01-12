@@ -461,7 +461,7 @@ io.on("connection", socket => {
     socket.on("magnetoCalibStart", function (data){
         if(data == true) {
 
-            childMagnetoCalibStart.exec('rosservice call mag_calibration',{
+            childMagnetoCalibStart = exec('rosservice call mag_calibration',{
                 silent: true,
                 async: true
             }, function(){
@@ -470,7 +470,7 @@ io.on("connection", socket => {
                 console.log("move start calib");                    
             });
         }else{
-            childMagnetoCalibStart.exec('rosservice call mag_calibration',{
+            childMagnetoCalibStart = exec('rosservice call mag_calibration',{
                 silent: true,
                 async: true
             }, function(){
@@ -483,7 +483,7 @@ io.on("connection", socket => {
 
     socket.on("magnetoCalibSave", function (data){
         if(data == true) {
-            childMagnetoCalibSave.exec('rosservice call mag_calibration_save',{
+            childMagnetoCalibSave = exec('rosservice call mag_calibration_save',{
                 silent: true,
                 async: true
             }, function(){
