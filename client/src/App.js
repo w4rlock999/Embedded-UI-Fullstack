@@ -391,7 +391,7 @@ class App extends React.Component {
                 
                 { this.state.drawer === "magnetoCalib" &&
                   <div>
-                    <span>Compass Calibration</span>
+                    <span>Calibration</span>
                   </div>
                 }                
                                                 

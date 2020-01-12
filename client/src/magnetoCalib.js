@@ -27,6 +27,10 @@ const styles={
         marginTop: 65,
         textAlign: 'center',
     },
+    fabContainer2: {
+        marginTop: 7,
+        textAlign: 'center',
+    },
 
 }
 
@@ -37,7 +41,9 @@ class magnetoCalib extends React.Component {
     
     render() {
 
-        magnetoCalibState = this.props.magnetoCalibState;
+        // magnetoCalibState = this.props.magnetoCalibState;
+
+        magnetoCalibState = "calibrating"
 
         return (
             <div style={styles.root}>
@@ -72,7 +78,7 @@ class magnetoCalib extends React.Component {
                                 Start
                             </Fab>
                         </div>    
-                        <div style={styles.fabContainer}>
+                        <div style={styles.fabContainer2}>
                             <Fab style={{display: 'inline-block', margin: 'auto', paddingLeft: 25, 
                                         paddingRight: 25, width: 140,
                                         fontFamily: "samsung-one-600"}} 
@@ -81,7 +87,7 @@ class magnetoCalib extends React.Component {
                                 Save
                             </Fab>
                         </div>    
-                        <div style={styles.fabContainer}>
+                        <div style={styles.fabContainer2}>
                             <Fab style={{display: 'inline-block', margin: 'auto', paddingLeft: 25, 
                                         paddingRight: 25, width: 140,
                                         fontFamily: "samsung-one-600"}} 

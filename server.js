@@ -435,6 +435,18 @@ io.on("connection", socket => {
             console.log(`calib mag ${serverState.magnetoCalib}`);
             socket.emit("magnetoCalibState","ready");
         
+            childMagnetoCalibLauncher.stdout.on('data', (data)=> {
+                console.log(`magnetocalib log: ${data}`);
+            });
+        
+            childMagnetoCalibLauncher.stderr.on('data', (data)=> {
+                console.log(`magnetocalib error: ${data}`);
+            });
+        
+            childMagnetoCalibLauncher.stdout.on('close', (code)=> {
+                console.log(`magnetocalib closed with code: ${code}`);
+            });
+
         }else{
 
             kill(childMagnetoCalibLauncher.pid, 'SIGINT');
@@ -444,18 +456,6 @@ io.on("connection", socket => {
             console.log(`calib mag ${serverState.magnetoCalib}`);
             socket.emit("magnetoCalibState","not ready");            
         }
-    });
-
-    childMagnetoCalibLauncher.stdout.on('data', (data)=> {
-        console.log(`magnetocalib log: ${data}`);
-    });
-
-    childMagnetoCalibLauncher.stderr.on('data', (data)=> {
-        console.log(`magnetocalib error: ${data}`);
-    });
-
-    childMagnetoCalibLauncher.stdout.on('close', (code)=> {
-        console.log(`magnetocalib closed with code: ${code}`);
     });
 
     socket.on("magnetoCalibStart", function (data){
