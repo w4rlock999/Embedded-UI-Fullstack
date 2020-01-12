@@ -66,6 +66,7 @@ class magnetoCalib extends React.Component {
                     (<div>
                         <p style={styles.subHeaderText}>Calib result:</p>
                         <br/>
+                        <p style={styles.subHeaderText}> {`${this.props.magnetoCalibAccuracy}`} </p>
                         <br/>
                         <br/>
                         <br/>

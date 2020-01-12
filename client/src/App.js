@@ -160,6 +160,7 @@ class App extends React.Component {
     endpoint: "http://localhost:5000",
     drawer: "mapping",
     magnetoCalib: "not ready",
+    magnetoCalibAccuracy: "no accuracy data",
   };
   
   componentDidMount() {
@@ -170,7 +171,8 @@ class App extends React.Component {
     socket.on("serverFolderRead", data => (projectFolders = data));
     socket.on("rmvableDStatus", data => (removableDiskStatus = data));
     socket.on("rmvableDObject", data => (removableDiskObject = data));
-    socket.on("magnetoCalibState", data => (this.setState({ magnetoCalib: data})) );
+    socket.on("magnetoCalibState", data => (this.setState({ magnetoCalib: data })) );
+    socket.on("magnetoCalibAccuracy", data => (this.setState({ magnetoCalibAccuracy: data })) );
   };
 
   drawerToggleHandler = () => {
@@ -573,6 +575,7 @@ class App extends React.Component {
             <div class={classes.containerMain}>
               <MagnetoCalib
               magnetoCalibState={this.state.magnetoCalib}
+              magnetoCalibAccuracy={this.state.magnetoCalibAccuracy}
               calibLaunchOnClickHandler={this.calibLaunchClickHandler}
               calibStartOnClickHandler={this.calibStartClickHandler}
               calibStopOnClickHandler={this.calibStopClickHandler}
