@@ -21,10 +21,10 @@ const server = http.createServer(app);
 const io = socketIo(server);
 
 
-// var pathToProject = "/home/w4rlock999/oneMap-Project/";
-// var pathToApp = "/home/w4rlock999/Workspace/web/onemap-fullstack";
-var pathToProject = "/home/rekadaya/oneMap-Project/";       //to deploy
-var pathToApp = "/home/rekadaya/ui_dir/onemap-fullstack";   //to deploy
+var pathToProject = "/home/w4rlock999/oneMap-Project/";     //to develop
+var pathToApp = "/home/w4rlock999/Workspace/web/onemap-fullstack";  //to develop
+// var pathToProject = "/home/rekadaya/oneMap-Project/";       //to deploy
+// var pathToApp = "/home/rekadaya/ui_dir/onemap-fullstack";   //to deploy
 
 var serverState = {
     mappingRunning: false,

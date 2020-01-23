@@ -1,7 +1,7 @@
 {
   "name": "react-material-ui",
   "version": "1.0.0",
-  "proxy": "http://100.100.0.1:5000/", 
+  "proxy": "http://localhost:5000/", 
   "scripts": {
     "client": "cd client && yarn start",
     "server": "nodemon server.js",
