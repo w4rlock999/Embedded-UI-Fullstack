@@ -21,10 +21,10 @@ const server = http.createServer(app);
 const io = socketIo(server);
 
 
-var pathToProject = "/home/w4rlock999/oneMap-Project/";
-var pathToApp = "/home/w4rlock999/Workspace/web/onemap-fullstack";
-// var pathToProject = "/home/rekadaya/oneMap-Project/";
-// var pathToApp = "/home/rekadaya/ui_dir/onemap-fullstack";
+// var pathToProject = "/home/w4rlock999/oneMap-Project/";
+// var pathToApp = "/home/w4rlock999/Workspace/web/onemap-fullstack";
+var pathToProject = "/home/rekadaya/oneMap-Project/";       //to deploy
+var pathToApp = "/home/rekadaya/ui_dir/onemap-fullstack";   //to deploy
 
 var serverState = {
     mappingRunning: false,
@@ -33,7 +33,8 @@ var serverState = {
     runTrajectoryLogger: false,
     runLidarMapper: false,
     recordBag: false,
-    realtimeMapping: false
+    realtimeMapping: false,
+    magnetoCalib: "not ready",
 };
 var clientState = {
     projectName: "",
@@ -46,6 +47,8 @@ var clientState = {
 let childRoscore;
 let childBagPlayer; //sementara, ganti dengan mapping launch file
 let childMagnetoCalibLauncher;
+let childMagnetoCalibStart;
+let childMagnetoCalibSave;
 let childMapperLauncher;
 let childTrajectoryLogger;
 let childLidarMapping;
@@ -177,6 +180,7 @@ if (require.main === module) {
 
 var prevLidarDataOK = false;
 var prevGpsPositionOK = false;
+
 
 const timerCallback = async socket => {
 
@@ -417,17 +421,79 @@ io.on("connection", socket => {
         console.log(`azimuth ${clientState.azimuth}`);
     });
 
-    socket.on("magnetoCalibStart", function (data) {
+    socket.on("magnetoCalibLaunch", function (data) {
         if(data == true) {
+            childMagnetoCalibLauncher = spawn('stdbuf',['-o', '0', 'roslaunch', 'sbg_driver', 'calibration_sbg_ellipse.launch']);
 
-            childMagnetoCalibLauncher = exec('roslaunch sbg_driver calibration_sbg_ellipse.launch',{
-                silent: true,
-                async: true
+            //better to be moved on node listener
+            serverState.magnetoCalib = "ready";
+            console.log(`calib mag ${serverState.magnetoCalib}`);
+            socket.emit("magnetoCalibState","ready");
+            
+            childMagnetoCalibLauncher.stdout.setEncoding('utf8');
+            childMagnetoCalibLauncher.stdout.on('data', (data)=> {
+                console.log('magnetocalib log:' + data );
+                
+                var calibOutput = data;
+                // console.log('CALIBOUTPUT log:' +  calibOutput );
+                if(calibOutput.includes("Accuracy")){
+                    console.log("accuracy foun");
+                    var stringPos = calibOutput.search('Accuracy');
+                    var calibAccuracy = calibOutput.substring(stringPos,stringPos+29);
+                    socket.emit("magnetoCalibAccuracy", calibAccuracy);
+                }
             });
-            pushFeedMessage({"text": "Magnetic Calibration Start"});
+        
+            childMagnetoCalibLauncher.stderr.on('data', (data)=> {
+                console.log(`magnetocalib error: ${data}`);
+            });
+        
+            childMagnetoCalibLauncher.stdout.on('close', (code)=> {
+                console.log(`magnetocalib closed with code: ${code}`);
+            });
 
         }else{
+
             kill(childMagnetoCalibLauncher.pid, 'SIGINT');
+
+            //better to be moved on node listener
+            serverState.magnetoCalib = "not ready";
+            console.log(`calib mag ${serverState.magnetoCalib}`);
+            socket.emit("magnetoCalibState","not ready");            
+        }
+    });
+
+    socket.on("magnetoCalibStart", function (data){
+        if(data == true) {
+
+            childMagnetoCalibStart = exec('rosservice call mag_calibration',{
+                silent: true,
+                async: true
+            }, function(){
+                serverState.magnetoCalib = "calibrating";
+                socket.emit("magnetoCalibState","calibrating");
+                console.log("move start calib");                    
+            });
+        }else{
+            childMagnetoCalibStart = exec('rosservice call mag_calibration',{
+                silent: true,
+                async: true
+            }, function(){
+                serverState.magnetoCalib = "ready";
+                socket.emit("magnetoCalibState","ready");                
+                console.log("move end calib");
+            });
+        }
+    });
+
+    socket.on("magnetoCalibSave", function (data){
+        if(data == true) {
+            childMagnetoCalibSave = exec('rosservice call mag_calibration_save',{
+                silent: true,
+                async: true
+            }, function(){
+                console.log(`calibration saved`);
+            });
         }
     });
 
