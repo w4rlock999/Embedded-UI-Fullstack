@@ -63,7 +63,6 @@ let childRecordBag;
 let childPPKLogger;
 let childRecordPPKdata;
 let childToPCD;
-
 let childShutdown;
 
 var date = new Date();
@@ -82,7 +81,7 @@ fs.writeFile(backendMsgFileDir, JSON.stringify(feedMessages, null, 2), function 
 
 var driveNum;
 var driveInit;
-var rmvableD_status;
+var rmvableD_status = false;
 var rmvableD_object = {
     name: "",
     mountPoint: "",
@@ -92,22 +91,8 @@ var rmvableD_object = {
 var rmvableD_index;
 var drives;
 
-const driveStart = async function(){
-    drives = await drivelist.list();
-    driveInit = drives.length;
-    console.log("initializing read drives....");
-    console.log(drives.length);
-}
-
-const driveRead = async function(){
-    drives = await drivelist.list();
-    console.log("read drives....");
-    console.log(drives);
-    console.log(drives.length);
-    return drives.length;
-}
-
-driveStart();
+var prevLidarDataOK = false;
+var prevGpsPositionOK = false;
 
 var connectedClient = 0;
 
@@ -151,48 +136,81 @@ var kill = function (pid, signal, callback) {
     }
 };
 
-function ros_topics_listener() {
+const driveStart = async function(){
+    drives = await drivelist.list();
+    driveInit = drives.length;
+    console.log("initializing read drives....");
+    console.log(drives.length);
+}
 
-    rosnodejs.initNode('/server_listener_node')
-      .then((rosNode) => {
-        
-        
-        //================= Check if sensors data are ready ======================
-        //========================================================================
+const driveRead = async function(){
+    drives = await drivelist.list();
+    console.log("read drives....");
+    console.log(drives);
+    console.log(drives.length);
+    return drives.length;
+}
 
-        let ekf_nav_sub = rosNode.subscribe('/ekf_nav', ekf_nav.SbgEkfNav,
-          (data) => { 
-        
-            if(data.status.gps1_pos_used && !serverState.gpsPositionOK && serverState.processRunning){
-                serverState.gpsPositionOK = true;    
-                rosnodejs.log.info('Status gps position is True!');
-            }else //below cannot be executed on roscore termination bcs no incoming data after. 
-            if(!data.status.gps1_pos_used && serverState.gpsPositionOK && serverState.processRunning){
-                serverState.gpsPositionOK = false;    
-                rosnodejs.log.info('Status gps position is False!');
-            }
-          }
-        );
-
-        let velodyne_points_sub = rosNode.subscribe('/velodyne_points', sensor_msgs.PointCloud2,
-          (data) => {  
-            if(!serverState.lidarDataOK && serverState.processRunning){
-                serverState.lidarDataOK = true;
-                rosnodejs.log.info('lidar data OK!');
-            }    
-          }
-        );
-      });
-};
+driveStart();
 
 if (require.main === module) {
-    // Invoke Main Listener Function
     ros_topics_listener();   
 }
 
-var prevLidarDataOK = false;
-var prevGpsPositionOK = false;
+io.on("connection", socket => {
+    
+    console.log("New client connected");
 
+    //======================= Main Process Handler =====================================
+    //==================================================================================
+
+    socket.on("clientRequest", data => { clientRequestCallback(data, socket) });
+    socket.on("processStart", data => { processStartCallback(data, socket) });
+
+
+
+    //=============== POWER Operation HANDLER ==========================================
+    //==================================================================================
+
+    socket.on("shutdown", data => { shutdownCallback(data, socket) });
+    socket.on("restart", data => { restartCallback(data, socket) });
+
+
+    //========================= Removable Disk Handler =================================
+    //==================================================================================
+
+    socket.on("rmvableDEject", data => { rmvableDEjectCallback(data, socket) });
+    socket.on("rmvableDCheck", data => { rmvableDCheckCallback(data, socket) });    
+
+
+    //======================= Project Folder Handler ===================================
+    //==================================================================================
+
+    projectFolderCheck(socket);
+    socket.on("clientFolderRead", data => { clientFolderReadCallback(data, socket) });
+    socket.on("copyProject", data => { copyProjectCallback(data, socket) });
+    socket.on("deleteProject", data => { deleteProjectCallback(data, socket) });
+
+
+    //======================= Magneto Calib Handler ====================================
+    //==================================================================================
+
+    socket.on("magnetoCalibLaunch", data => { magnetoCalibLaunchCallback(data, socket) });
+    socket.on("magnetoCalibStart", data => { magnetoCalibStartCallback(data, socket) });
+    socket.on("magnetoCalibSave", data => { magnetoCalibSaveCallback(data, socket) });
+
+
+    //==================================================================================
+
+    if(connectedClient == 0){
+        setInterval( ()=>timerCallback(socket),1000);
+        connectedClient=connectedClient+1;
+    } else {
+        connectedClient=connectedClient+1;
+    }
+
+    socket.on("disconnect", () => console.log("client disconnected"));
+});
 
 const timerCallback = async socket => {
 
@@ -302,178 +320,165 @@ const timerCallback = async socket => {
     prevGpsPositionOK = serverState.gpsPositionOK;
 };
 
-io.on("connection", socket => {
-    
-    console.log("New client connected");
+function ros_topics_listener() {
 
-    //======================= Main Process Handler =====================================
-    //==================================================================================
-
-    socket.on("clientRequest", function (data) {
-        clientRequest = data;
-        console.log(`params received`);
-
-        console.log(`project name ${clientRequest.projectName}`);
-        console.log(`save to ${clientRequest.saveTo}`);
-        console.log(`record bag ${clientRequest.recordBag}`);
-        console.log(`RTK mapping ${clientRequest.RTKprocess}`);
-        console.log(`PPK mapping ${clientRequest.PPKprocess}`);
-    });
-
-    socket.on("processStart", function (data) {
-        if(data == true) {
-
-            console.log("client send processStart: " + data);
-
-            // childBagPlayer = exec('rosbag play /home/rekadaya//Downloads/2019-04-12-21-02-09.bag --clock',{
-            //     silent: true, 
-            //     async: true
-            // });
-
-            childSensorsLauncher = exec('roslaunch trajectory_logger devices.launch',{
-                silent: true,
-                async: true
-            });
-   
-            pushFeedMessage({"text": "PROCESS STARTED for "+ clientRequest.projectName +""});
-            serverState.processRunning = true;
-         
-        }else{
-
-            console.log("client terminated process, processStart: " + data);
-            serverState.processRunning = false;
-
-            if(clientRequest.RTKprocess && !clientRequest.PPKprocess){                      //RTK stop process
-                
-                if(serverState.recordMapperPoints) kill(childRecordMapperPoints.pid);
-                if(serverState.recordBag) kill(childRecordBag.pid);            
-                if(serverState.runLidarMapper) kill(childLidarMapping.pid, 'SIGINT');
-                if(serverState.runTrajectoryLogger) kill(childTrajectoryLogger.pid);
-    
-                if(serverState.recordMapperPoints){
-                    childToPCD = exec(`bash ${pathToApp}/topcd.bash ${clientRequest.projectName}`,{
-                        killSignal: 'SIGINT'
-                    }, 
-                    function(){
+    rosnodejs.initNode('/server_listener_node')
+      .then((rosNode) => {
         
-                        serverState.runTrajectoryLogger = false;
-                        serverState.runLidarMapper = false;
-                        pushFeedMessage({"text": "Export to PCD, done!"});
-                    });
-                }else{
-                    exec(`bash ${pathToApp}/nopcd.bash ${clientRequest.projectName}`,{
-                        killSignal: 'SIGINT'
-                    }, 
-                    function(){
         
-                        serverState.runTrajectoryLogger = false;
-                        serverState.runLidarMapper = false;
-                        pushFeedMessage({"text": "No data mapped"});
-                    });
-                }
-    
-                kill(childSensorsLauncher.pid, 'SIGINT', function() {
-                // kill(childBagPlayer.pid, 'SIGINT', function() {
-    
-                    pushFeedMessage({"text": "RTK process stopped"});    
-                    
-                    serverState.gpsPositionOK = false;
-                    serverState.lidarDataOK = false;
-                    serverState.recordBag = false;
-                    serverState.recordMapperPoints = false;
-                });     
+        //================= Check if sensors data are ready ======================
+        //========================================================================
 
-            }else if(!clientRequest.RTKprocess && clientRequest.PPKprocess){                //PPK stop process
-                
-                if(serverState.recordPPKdata) kill(childRecordPPKdata.pid)
-                if(serverState.recordBag) kill(childRecordBag.pid);
-                if(serverState.runPPKLogger) kill(childPPKLogger.pid)
-
-                if(serverState.recordPPKdata){
-                    childToPCD = exec(`bash ${pathToApp}/ppk_postOp.bash ${clientRequest.projectName}`,{
-                        killSignal: 'SIGINT'
-                    }, 
-                    function(){
+        let ekf_nav_sub = rosNode.subscribe('/ekf_nav', ekf_nav.SbgEkfNav,
+          (data) => { 
         
-                        serverState.runPPKLogger = false;
-                        pushFeedMessage({"text": "Export to PCD, done!"});
-                        pushFeedMessage({"text": "Export to PKL, done!"});
-                    });
-                }else{
-                    exec(`bash ${pathToApp}/nopcd.bash ${clientRequest.projectName}`,{
-                        killSignal: 'SIGINT'
-                    }, 
-                    function(){
-        
-                        serverState.runPPKLogger = false;
-                        pushFeedMessage({"text": "No data logged"});
-                    });
-                }
-                
-                kill(childSensorsLauncher.pid, 'SIGINT', function() {
-                // kill(childBagPlayer.pid, 'SIGINT', function() {
-    
-                    pushFeedMessage({"text": "PPK process stopped"});    
-                    
-                    serverState.gpsPositionOK = false;
-                    serverState.lidarDataOK = false;
-                    serverState.recordBag = false;
-                    serverState.recordPPKdata = false;
-                });                   
+            if(data.status.gps1_pos_used && !serverState.gpsPositionOK && serverState.processRunning){
+                serverState.gpsPositionOK = true;    
+                rosnodejs.log.info('Status gps position is True!');
+            }else //below cannot be executed on roscore termination bcs no incoming data after. 
+            if(!data.status.gps1_pos_used && serverState.gpsPositionOK && serverState.processRunning){
+                serverState.gpsPositionOK = false;    
+                rosnodejs.log.info('Status gps position is False!');
             }
-        }
-    });
-    //==================================================================================
+          }
+        );
 
-    //=============== POWER Operation HANDLER ==========================================
-    //==================================================================================
+        let velodyne_points_sub = rosNode.subscribe('/velodyne_points', sensor_msgs.PointCloud2,
+          (data) => {  
+            if(!serverState.lidarDataOK && serverState.processRunning){
+                serverState.lidarDataOK = true;
+                rosnodejs.log.info('lidar data OK!');
+            }    
+          }
+        );
+      });
+};
 
-    socket.on("shutdown", function (data) {
-        console.log(`NEW2 shutdown signal got,value: ${data}`);
+const clientRequestCallback = (data, socket) => {
+    clientRequest = data;
+    console.log(`params received`);
 
-        // spawn("shutdown",['now']);
-        if(data){
+    console.log(`project name ${clientRequest.projectName}`);
+    console.log(`save to ${clientRequest.saveTo}`);
+    console.log(`record bag ${clientRequest.recordBag}`);
+    console.log(`RTK mapping ${clientRequest.RTKprocess}`);
+    console.log(`PPK mapping ${clientRequest.PPKprocess}`);
+}
 
-            exec(`sudo shutdown now`, (error, stdout, stderr) => {
-                console.log("command called");
-                
-                if (error) {
-                    console.error(`exec error: ${error}`);
-                    return;
-                }
-                console.log(`stdout: ${stdout}`);
-                console.log(`stderr: ${stderr}`);
-            });
-        }
-    });
+const processStartCallback = (data, socket) => {
 
-    socket.on("restart", function (data) {
-        
-        console.log(`restart signal got,value: ${data}`);
-        if(data){
+    if(data == true) {
+
+        console.log("client send processStart: " + data);
+
+        // childBagPlayer = exec('rosbag play /home/rekadaya//Downloads/2019-04-12-21-02-09.bag --clock',{
+        //     silent: true, 
+        //     async: true
+        // });
+
+        childSensorsLauncher = exec('roslaunch trajectory_logger devices.launch',{
+            silent: true,
+            async: true
+        });
+
+        pushFeedMessage({"text": "PROCESS STARTED for "+ clientRequest.projectName +""});
+        serverState.processRunning = true;
+     
+    }else{
+
+        console.log("client terminated process, processStart: " + data);
+        serverState.processRunning = false;
+
+        if(clientRequest.RTKprocess && !clientRequest.PPKprocess){                      //RTK stop process
             
-            exec(`sudo shutdown -r now`, (error, stdout, stderr) => {
-                console.log("command called");
+            if(serverState.recordMapperPoints) kill(childRecordMapperPoints.pid);
+            if(serverState.recordBag) kill(childRecordBag.pid);            
+            if(serverState.runLidarMapper) kill(childLidarMapping.pid, 'SIGINT');
+            if(serverState.runTrajectoryLogger) kill(childTrajectoryLogger.pid);
+
+            if(serverState.recordMapperPoints){
+                childToPCD = exec(`bash ${pathToApp}/topcd.bash ${clientRequest.projectName}`,{
+                    killSignal: 'SIGINT'
+                }, 
+                function(){
+    
+                    serverState.runTrajectoryLogger = false;
+                    serverState.runLidarMapper = false;
+                    pushFeedMessage({"text": "Export to PCD, done!"});
+                });
+            }else{
+                exec(`bash ${pathToApp}/nopcd.bash ${clientRequest.projectName}`,{
+                    killSignal: 'SIGINT'
+                }, 
+                function(){
+    
+                    serverState.runTrajectoryLogger = false;
+                    serverState.runLidarMapper = false;
+                    pushFeedMessage({"text": "No data mapped"});
+                });
+            }
+
+            kill(childSensorsLauncher.pid, 'SIGINT', function() {
+            // kill(childBagPlayer.pid, 'SIGINT', function() {
+
+                pushFeedMessage({"text": "RTK process stopped"});    
                 
-                if (error) {
-                    console.error(`exec errpr: ${error}`);
-                    return;
-                }
-                console.log(`stdout: ${stdout}`);
-                console.log(`stderr: ${stderr}`);
-            });
+                serverState.gpsPositionOK = false;
+                serverState.lidarDataOK = false;
+                serverState.recordBag = false;
+                serverState.recordMapperPoints = false;
+            });     
+
+        }else if(!clientRequest.RTKprocess && clientRequest.PPKprocess){                //PPK stop process
+            
+            if(serverState.recordPPKdata) kill(childRecordPPKdata.pid)
+            if(serverState.recordBag) kill(childRecordBag.pid);
+            if(serverState.runPPKLogger) kill(childPPKLogger.pid)
+
+            if(serverState.recordPPKdata){
+                childToPCD = exec(`bash ${pathToApp}/ppk_postOp.bash ${clientRequest.projectName}`,{
+                    killSignal: 'SIGINT'
+                }, 
+                function(){
+    
+                    serverState.runPPKLogger = false;
+                    pushFeedMessage({"text": "Export to PCD, done!"});
+                    pushFeedMessage({"text": "Export to PKL, done!"});
+                });
+            }else{
+                exec(`bash ${pathToApp}/nopcd.bash ${clientRequest.projectName}`,{
+                    killSignal: 'SIGINT'
+                }, 
+                function(){
+    
+                    serverState.runPPKLogger = false;
+                    pushFeedMessage({"text": "No data logged"});
+                });
+            }
+            
+            kill(childSensorsLauncher.pid, 'SIGINT', function() {
+            // kill(childBagPlayer.pid, 'SIGINT', function() {
+
+                pushFeedMessage({"text": "PPK process stopped"});    
+                
+                serverState.gpsPositionOK = false;
+                serverState.lidarDataOK = false;
+                serverState.recordBag = false;
+                serverState.recordPPKdata = false;
+            });                   
         }
-    });
-    //==================================================================================
+    }
+}
 
-    //========================= Removable Disk Handler =================================
-    //==================================================================================
+const shutdownCallback = (data, socket) => {
+   
+    console.log(`NEW2 shutdown signal got,value: ${data}`);
 
-    socket.on("rmvableDEject", function (data) {
-        
-        console.log("ejecting...");
-        exec(`umount "${rmvableD_object.mountPoint}" `, async (error, stdout, stderr) => {
-            console.log("command called: eject");
+    // spawn("shutdown",['now']);
+    if(data){
+
+        exec(`sudo shutdown now`, (error, stdout, stderr) => {
+            console.log("command called");
             
             if (error) {
                 console.error(`exec error: ${error}`);
@@ -481,34 +486,41 @@ io.on("connection", socket => {
             }
             console.log(`stdout: ${stdout}`);
             console.log(`stderr: ${stderr}`);
-
-            console.log("removable drive check...");
-            driveNum = await driveRead();
-            console.log(driveNum);
-            // if(driveInit < driveNum){
-            var i;
-            for(i = 0; i < driveNum; i++){
-                if(drives[i].isUSB){
-                    console.log("mountpoints after eject::");
-                    console.log(drives[i].mountpoints.length);
-                    if(drives[i].mountpoints.length){
-                        rmvableD_status = true;
-                        rmvableD_index = i;
-                        console.log(`removable device detected on index ${rmvableD_index}`);
-                    }else{
-                        console.log(`removable device unmounted`);
-
-                        rmvableD_status = false;
-                        socket.emit("rmvableDStatus", rmvableD_status);
-                        socket.broadcast.emit("rmvableDStatus", rmvableD_status);
-                    }
-                }
-            }
-            if(rmvableD_status === false) console.log("no removable disk");
         });
-    });
-    
-    socket.on("rmvableDCheck", async function (data) {
+    }
+}
+
+const restartCallback = (data, socket) => {
+        
+    console.log(`restart signal got,value: ${data}`);
+    if(data){
+        
+        exec(`sudo shutdown -r now`, (error, stdout, stderr) => {
+            console.log("command called");
+            
+            if (error) {
+                console.error(`exec errpr: ${error}`);
+                return;
+            }
+            console.log(`stdout: ${stdout}`);
+            console.log(`stderr: ${stderr}`);
+        });
+    }
+}
+
+const rmvableDEjectCallback = (data, socket) => {
+        
+    console.log("ejecting...");
+    exec(`umount "${rmvableD_object.mountPoint}" `, async (error, stdout, stderr) => {
+        console.log("command called: eject");
+        
+        if (error) {
+            console.error(`exec error: ${error}`);
+            return;
+        }
+        console.log(`stdout: ${stdout}`);
+        console.log(`stderr: ${stderr}`);
+
         console.log("removable drive check...");
         driveNum = await driveRead();
         console.log(driveNum);
@@ -516,191 +528,194 @@ io.on("connection", socket => {
         var i;
         for(i = 0; i < driveNum; i++){
             if(drives[i].isUSB){
-                rmvableD_status = true;
-                rmvableD_index = i;
-                console.log(`removable device detected on index ${rmvableD_index}`);
+                console.log("mountpoints after eject::");
+                console.log(drives[i].mountpoints.length);
+                if(drives[i].mountpoints.length){
+                    rmvableD_status = true;
+                    rmvableD_index = i;
+                    console.log(`removable device detected on index ${rmvableD_index}`);
+                }else{
+                    console.log(`removable device unmounted`);
+
+                    rmvableD_status = false;
+                    socket.emit("rmvableDStatus", rmvableD_status);
+                    socket.broadcast.emit("rmvableDStatus", rmvableD_status);
+                }
             }
         }
         if(rmvableD_status === false) console.log("no removable disk");
-        //emit some feedback to client here
-
-        // if(rmvableD_status) socket.emit("rmvableDProperties", drives[rmvableD_index]);
-        if(rmvableD_status) {
-            // console.log(drives[rmvableD_index].mountpoints[0]);
-            rmvableD_object.name = drives[rmvableD_index].mountpoints[0].label;
-            rmvableD_object.mountPoint = drives[rmvableD_index].mountpoints[0].path;
-            console.log(`removable drive name ${rmvableD_object.name}`);
-            console.log(`removable drive mountpoint ${rmvableD_object.mountPoint}`);
-
-            try { 
-
-                const diskRead = await diskusage.check(rmvableD_object.mountPoint);
-                rmvableD_object.freeSpace = diskRead.free;
-                rmvableD_object.totalSpace = diskRead.total; 
-                console.log(`Free space: ${diskRead.free}`);
-
-                socket.emit("rmvableDObject", rmvableD_object);
-                socket.broadcast.emit("rmvableDObject", rmvableD_object);
-                console.log(`emit ${rmvableD_object}`);
-
-                socket.emit("rmvableDStatus", rmvableD_status);
-                socket.broadcast.emit("rmvableDStatus", rmvableD_status);
-            } catch (err) {
-                console.error(err)
-            }                
-        }
     });
-    //==================================================================================
-    
-    //======================= Project Folder Handler ===================================
-    //==================================================================================
+}
 
+const rmvableDCheckCallback = async (data, socket) => {
+    
+    console.log("removable drive check...");
+    driveNum = await driveRead();
+    console.log(driveNum);
+    // if(driveInit < driveNum){
+    var i;
+    for(i = 0; i < driveNum; i++){
+        if(drives[i].isUSB){
+            rmvableD_status = true;
+            rmvableD_index = i;
+            console.log(`removable device detected on index ${rmvableD_index}`);
+        }
+    }
+    if(rmvableD_status === false) console.log("no removable disk");
+    //emit some feedback to client here
+
+    // if(rmvableD_status) socket.emit("rmvableDProperties", drives[rmvableD_index]);
+    if(rmvableD_status) {
+        // console.log(drives[rmvableD_index].mountpoints[0]);
+        rmvableD_object.name = drives[rmvableD_index].mountpoints[0].label;
+        rmvableD_object.mountPoint = drives[rmvableD_index].mountpoints[0].path;
+        console.log(`removable drive name ${rmvableD_object.name}`);
+        console.log(`removable drive mountpoint ${rmvableD_object.mountPoint}`);
+
+        try { 
+
+            const diskRead = await diskusage.check(rmvableD_object.mountPoint);
+            rmvableD_object.freeSpace = diskRead.free;
+            rmvableD_object.totalSpace = diskRead.total; 
+            console.log(`Free space: ${diskRead.free}`);
+
+            socket.emit("rmvableDObject", rmvableD_object);
+            socket.broadcast.emit("rmvableDObject", rmvableD_object);
+            console.log(`emit ${rmvableD_object}`);
+
+            socket.emit("rmvableDStatus", rmvableD_status);
+            socket.broadcast.emit("rmvableDStatus", rmvableD_status);
+        } catch (err) {
+            console.error(err)
+        }                
+    }
+}
+
+const projectFolderCheck = (socket) => {
+    
     fs.readdir(pathToProject, function(err, items) {
         console.log(items);
         console.log("read folders");
         socket.emit("serverFolderRead", items);
         socket.broadcast.emit("serverFolderRead", items);
     });
+}
 
-    socket.on("clientFolderRead", function (data) {
-        fs.readdir(pathToProject, function(err, items) {
-            console.log(items);
-            console.log("read folders");
-            socket.emit("serverFolderRead", items);
-            socket.broadcast.emit("serverFolderRead", items);
-        });
-    });
+const clientFolderReadCallback = (data,socket) => {
+    projectFolderCheck(socket)
+}
 
-    socket.on("copyProject", function(data) {
-        if(rmvableD_status){
-            
-            pathToCopyDst = rmvableD_object.mountPoint + "/"
-            console.log(pathToCopyDst);
+const copyProjectCallback = (data, socket) => {
+ 
+    if(rmvableD_status){
+        
+        pathToCopyDst = rmvableD_object.mountPoint + "/"
+        console.log(pathToCopyDst);
 
-            //emit client feedback and make some graphical change (waiting copy process)
-            fs.copy(pathToProject+data,pathToCopyDst+data, function (err){
-                if (err){
-                    return console.error("error occured" + err);
-                }                
-                console.log("Copy Success!");
-                pushFeedMessage({"text":`Folder ${data} to ${rmvableD_object.name} copied!`});
-                //emit client feedback and make some graphical change 
-            })
-        }else{
-            console.log("no removable disk")
-            //write client feedback
-        }
-        // console.log(pathToProject+data);
-    });
-
-    socket.on("deleteProject", function(data) {
-        fs.remove(pathToProject+data, function (err){
-            if(err){
+        //emit client feedback and make some graphical change (waiting copy process)
+        fs.copy(pathToProject+data,pathToCopyDst+data, function (err){
+            if (err){
                 return console.error("error occured" + err);
-            }
-            console.log("Project folder deleted!");
-            pushFeedMessage({"text":`Project ${data} deleted`})
-            
-            fs.readdir(pathToProject, function(err, items) {
-                console.log(items);
-                console.log("read folders");
-                socket.emit("serverFolderRead", items);
-                socket.broadcast.emit("serverFolderRead", items);
-            });
+            }                
+            console.log("Copy Success!");
+            pushFeedMessage({"text":`Folder ${data} to ${rmvableD_object.name} copied!`});
+            //emit client feedback and make some graphical change 
         })
-    });
-    //==================================================================================
-
-    //======================= Magneto Calib Handler ====================================
-    //==================================================================================
-
-    socket.on("magnetoCalibLaunch", function (data) {
-        if(data == true) {
-            childMagnetoCalibLauncher = spawn('stdbuf',['-o', '0', 'roslaunch', 'sbg_driver', 'calibration_sbg_ellipse.launch']);
-
-            //better to be moved on node listener
-            serverState.magnetoCalib = "ready";
-            console.log(`calib mag ${serverState.magnetoCalib}`);
-            socket.emit("magnetoCalibState","ready");
-            
-            childMagnetoCalibLauncher.stdout.setEncoding('utf8');
-            childMagnetoCalibLauncher.stdout.on('data', (data)=> {
-                console.log('magnetocalib log:' + data );
-                
-                var calibOutput = data;
-                // console.log('CALIBOUTPUT log:' +  calibOutput );
-                if(calibOutput.includes("Accuracy")){
-                    console.log("accuracy foun");
-                    var stringPos = calibOutput.search('Accuracy');
-                    var calibAccuracy = calibOutput.substring(stringPos,stringPos+29);
-                    socket.emit("magnetoCalibAccuracy", calibAccuracy);
-                }
-            });
-        
-            childMagnetoCalibLauncher.stderr.on('data', (data)=> {
-                console.log(`magnetocalib error: ${data}`);
-            });
-        
-            childMagnetoCalibLauncher.stdout.on('close', (code)=> {
-                console.log(`magnetocalib closed with code: ${code}`);
-            });
-
-        }else{
-
-            kill(childMagnetoCalibLauncher.pid, 'SIGINT');
-
-            //better to be moved on node listener
-            serverState.magnetoCalib = "not ready";
-            console.log(`calib mag ${serverState.magnetoCalib}`);
-            socket.emit("magnetoCalibState","not ready");            
-        }
-    });
-
-    socket.on("magnetoCalibStart", function (data){
-        if(data == true) {
-
-            childMagnetoCalibStart = exec('rosservice call mag_calibration',{
-                silent: true,
-                async: true
-            }, function(){
-                serverState.magnetoCalib = "calibrating";
-                socket.emit("magnetoCalibState","calibrating");
-                console.log("move start calib");                    
-            });
-        }else{
-            childMagnetoCalibStart = exec('rosservice call mag_calibration',{
-                silent: true,
-                async: true
-            }, function(){
-                serverState.magnetoCalib = "ready";
-                socket.emit("magnetoCalibState","ready");                
-                console.log("move end calib");
-            });
-        }
-    });
-
-    socket.on("magnetoCalibSave", function (data){
-        if(data == true) {
-            childMagnetoCalibSave = exec('rosservice call mag_calibration_save',{
-                silent: true,
-                async: true
-            }, function(){
-                console.log(`calibration saved`);
-            });
-        }
-    });
-    //==================================================================================
-    //==================================================================================
-
-    if(connectedClient == 0){
-        setInterval( ()=>timerCallback(socket),1000);
-        connectedClient=connectedClient+1;
-    } else {
-        connectedClient=connectedClient+1;
+    }else{
+        console.log("no removable disk")
+        //write client feedback
     }
+    // console.log(pathToProject+data);
+}
 
-    socket.on("disconnect", () => console.log("client disconnected"));
-});
+const deleteProjectCallback = (data, socket) => {
+  
+    fs.remove(pathToProject+data, function (err){
+        if(err){
+            return console.error("error occured" + err);
+        }
+        console.log("Project folder deleted!");
+        pushFeedMessage({"text":`Project ${data} deleted`})
+        projectFolderCheck(socket);
+    })
+}
 
+const magnetoCalibLaunchCallback = (data, socket) => {
+    if(data == true) {
+        childMagnetoCalibLauncher = spawn('stdbuf',['-o', '0', 'roslaunch', 'sbg_driver', 'calibration_sbg_ellipse.launch']);
+
+        //better to be moved on node listener
+        serverState.magnetoCalib = "ready";
+        console.log(`calib mag ${serverState.magnetoCalib}`);
+        socket.emit("magnetoCalibState","ready");
+        
+        childMagnetoCalibLauncher.stdout.setEncoding('utf8');
+        childMagnetoCalibLauncher.stdout.on('data', (data)=> {
+            console.log('magnetocalib log:' + data );
+            
+            var calibOutput = data;
+            // console.log('CALIBOUTPUT log:' +  calibOutput );
+            if(calibOutput.includes("Accuracy")){
+                console.log("accuracy foun");
+                var stringPos = calibOutput.search('Accuracy');
+                var calibAccuracy = calibOutput.substring(stringPos,stringPos+29);
+                socket.emit("magnetoCalibAccuracy", calibAccuracy);
+            }
+        });
+    
+        childMagnetoCalibLauncher.stderr.on('data', (data)=> {
+            console.log(`magnetocalib error: ${data}`);
+        });
+    
+        childMagnetoCalibLauncher.stdout.on('close', (code)=> {
+            console.log(`magnetocalib closed with code: ${code}`);
+        });
+
+    }else{
+
+        kill(childMagnetoCalibLauncher.pid, 'SIGINT');
+
+        //better to be moved on node listener
+        serverState.magnetoCalib = "not ready";
+        console.log(`calib mag ${serverState.magnetoCalib}`);
+        socket.emit("magnetoCalibState","not ready");            
+    }
+}
+
+const magnetoCalibStartCallback = (data, socket) => {
+    if(data == true) {
+
+        childMagnetoCalibStart = exec('rosservice call mag_calibration',{
+            silent: true,
+            async: true
+        }, function(){
+            serverState.magnetoCalib = "calibrating";
+            socket.emit("magnetoCalibState","calibrating");
+            console.log("move start calib");                    
+        });
+    }else{
+        childMagnetoCalibStart = exec('rosservice call mag_calibration',{
+            silent: true,
+            async: true
+        }, function(){
+            serverState.magnetoCalib = "ready";
+            socket.emit("magnetoCalibState","ready");                
+            console.log("move end calib");
+        });
+    }
+}
+
+const magnetoCalibSaveCallback = (data, socket) => {
+    
+    if(data == true) {
+        childMagnetoCalibSave = exec('rosservice call mag_calibration_save',{
+            silent: true,
+            async: true
+        }, function(){
+            console.log(`calibration saved`);
+            // calibration result on pushfeed
+        });
+    }
+}
 
 server.listen(port, () => console.log(`Listening on port ${port}`));
