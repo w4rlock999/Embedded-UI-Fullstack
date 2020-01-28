@@ -129,19 +129,10 @@ let socket;
 let childState = {
   projectName: "projectName",
   saveTo: "~/simpanBag/",
-  azimuth: "0",
   recordBag: true,
-  realtimeMapping: true
+  RTKprocess: true,
+  PPKprocess: false,
 }; 
-
-var serverState = {
-  mappingRunning: false,
-  runRoscore: false,
-  runTrajectoryLogger: false,
-  runLidarMapper: false,
-  withRecord: false,
-  withRTmapping: false,
-};
 
 var statuses = [];
 var projectFolders = [];
@@ -152,10 +143,9 @@ class App extends React.Component {
 
   state = {
     mobileOpen: false,
-    mappingRunning: false,
+    processRunning: false,
     startDialogOpen: false,
     stopDialogOpen: false,
-    startDialogPhase: false,
     powerDialogOpen: false,
     endpoint: "http://localhost:5000",
     drawer: "mapping",
@@ -166,7 +156,7 @@ class App extends React.Component {
   componentDidMount() {
     const { endpoint } = this.state;
     socket = socketIOClient(endpoint);
-    socket.on("mappingRunning", data => (this.setState({ mappingRunning: data})) );
+    socket.on("processRunning", data => (this.setState({ processRunning: data})) );
     socket.on("serverMessage", data => (statuses = data));
     socket.on("serverFolderRead", data => (projectFolders = data));
     socket.on("rmvableDStatus", data => (removableDiskStatus = data));
@@ -180,9 +170,8 @@ class App extends React.Component {
   };
 
   startDialogOpenHandler = () => {
-      this.setState({ startDialogPhase: false});
+      // this.setState({ startDialogPhase: false});
       this.setState({ startDialogOpen: true});
-      socket.emit("frontInput", 999);
   };
 
   stopDialogOpenHandler = () => {
@@ -191,16 +180,19 @@ class App extends React.Component {
 
   startDialogClickHandler = () => {
 
-    const startDialogPhase = this.state.startDialogPhase;
+    // const startDialogPhase = this.state.startDialogPhase;
 
-    if( startDialogPhase == false )
-      this.setState({ startDialogPhase: true});
-    else{
-      this.setState({ mappingRunning: true});
-      socket.emit("clientRequestParams", childState);
-      socket.emit("mappingStart", true);
-      this.setState({ startDialogOpen: false});  
-    };    
+    // if( startDialogPhase == false )
+    //   this.setState({ startDialogPhase: true});
+    // else{
+    //   // this.setState({ processRunning: true});
+    // socket.emit("clientRequest", childState);
+    // socket.emit("processStart", true);
+    // this.setState({ startDialogOpen: false});  
+    // };    
+    socket.emit("clientRequest", childState);
+    socket.emit("processStart", true);
+    this.setState({ startDialogOpen: false});    
   };
 
   startDialogCloseHandler = () => {
@@ -216,8 +208,8 @@ class App extends React.Component {
   };
 
   stopDialogClickHandler = () => {
-    this.setState({ mappingRunning: false});
-    socket.emit("mappingStart", false);
+    this.setState({ processRunning: false});
+    socket.emit("processStart", false);
     this.setState({ stopDialogOpen: false});  
   };
 
@@ -251,6 +243,14 @@ class App extends React.Component {
 
   rmvableDEjectClickHandler = () => {
     socket.emit("rmvableDEject", true);
+  };
+
+  copyOnClickHandler = (projectFolder) => {
+    socket.emit("copyProject", projectFolder);
+  };
+  
+  deleteOnClickHandler = (projectFolder) => {
+    socket.emit("deleteProject", projectFolder);
   };
 
   drawerMappingOnClickHandler = () => {
@@ -456,7 +456,7 @@ class App extends React.Component {
         { this.state.drawer === "mapping" && 
           <FabOne onClickStart={this.startDialogOpenHandler}
                   onClickStop={this.stopDialogOpenHandler} 
-                  mappingRunningState={this.state.mappingRunning}
+                  processRunningState={this.state.processRunning}
           />
         }
 
@@ -500,12 +500,12 @@ class App extends React.Component {
           aria-labelledby="form-dialog-title"
         >
           <DialogTitle id="form-dialog-title">Mapping Preparation</DialogTitle>
-          <DialogContent dialogState={this.state.startDialogPhase} TextFieldUpdate={this.textFieldUpdateHandler}/>
+          <DialogContent TextFieldUpdate={this.textFieldUpdateHandler}/>
           <DialogActions>
             <ButtonUI onClick={this.startDialogCloseHandler} color="primary">
               Cancel
             </ButtonUI>
-              <DialogButton dialogState={this.state.startDialogPhase} onClick={this.startDialogClickHandler}/>
+              <DialogButton onClick={this.startDialogClickHandler}/>
           </DialogActions>
         </Dialog>
 
@@ -549,7 +549,8 @@ class App extends React.Component {
 
         { this.state.drawer === "saved" && 
           <div class={classes.containerMain}>
-            <FolderView projectFolders={projectFolders}/>
+            <FolderView projectFolders={projectFolders} copyOnClickHandler={this.copyOnClickHandler} 
+                        deleteOnClickHandler={this.deleteOnClickHandler}/>
           </div>
         }
 

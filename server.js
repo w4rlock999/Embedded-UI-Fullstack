@@ -14,7 +14,8 @@ const app = express();
 const port = process.env.PORT || 5000;
 const index = require("./routes/index");
 var psTree = require('ps-tree');
-var fs = require('fs');
+// var fs = require('fs');
+const fs = require('fs-extra'); 
 
 app.use(index);
 const server = http.createServer(app);
@@ -23,25 +24,30 @@ const io = socketIo(server);
 
 var pathToProject = "/home/w4rlock999/oneMap-Project/";     //to develop
 var pathToApp = "/home/w4rlock999/Workspace/web/onemap-fullstack";  //to develop
+var pathToCopyDst = "/home/w4rlock999/cobaCopyDisini/"
 // var pathToProject = "/home/rekadaya/oneMap-Project/";       //to deploy
 // var pathToApp = "/home/rekadaya/ui_dir/onemap-fullstack";   //to deploy
 
 var serverState = {
-    mappingRunning: false,
+    processRunning: false,
     gpsPositionOK: false,
     lidarDataOK: false,
+    PPKprocess: false,
+    runPPKLogger: false,
+    recordPPKdata: false,
+    RTKprocess: false,
     runTrajectoryLogger: false,
     runLidarMapper: false,
+    recordMapperPoints: false,
     recordBag: false,
-    realtimeMapping: false,
     magnetoCalib: "not ready",
 };
-var clientState = {
+var clientRequest = {
     projectName: "",
     saveTo: "",
-    azimuth: "",
     recordBag: true,
-    realtimeMapping: true
+    RTKprocess: true,
+    PPKprocess: false,
 };
 
 let childRoscore;
@@ -49,11 +55,13 @@ let childBagPlayer; //sementara, ganti dengan mapping launch file
 let childMagnetoCalibLauncher;
 let childMagnetoCalibStart;
 let childMagnetoCalibSave;
-let childMapperLauncher;
+let childSensorsLauncher;
 let childTrajectoryLogger;
 let childLidarMapping;
-let childSaveMapped;
+let childRecordMapperPoints;
 let childRecordBag;
+let childPPKLogger;
+let childRecordPPKdata;
 let childToPCD;
 
 let childShutdown;
@@ -144,18 +152,22 @@ var kill = function (pid, signal, callback) {
 };
 
 function ros_topics_listener() {
-    // Register node with ROS master
+
     rosnodejs.initNode('/server_listener_node')
       .then((rosNode) => {
         
+        
+        //================= Check if sensors data are ready ======================
+        //========================================================================
+
         let ekf_nav_sub = rosNode.subscribe('/ekf_nav', ekf_nav.SbgEkfNav,
           (data) => { 
         
-            if(data.status.gps1_pos_used && !serverState.gpsPositionOK && serverState.mappingRunning){
+            if(data.status.gps1_pos_used && !serverState.gpsPositionOK && serverState.processRunning){
                 serverState.gpsPositionOK = true;    
                 rosnodejs.log.info('Status gps position is True!');
             }else //below cannot be executed on roscore termination bcs no incoming data after. 
-            if(!data.status.gps1_pos_used && serverState.gpsPositionOK && serverState.mappingRunning){
+            if(!data.status.gps1_pos_used && serverState.gpsPositionOK && serverState.processRunning){
                 serverState.gpsPositionOK = false;    
                 rosnodejs.log.info('Status gps position is False!');
             }
@@ -164,7 +176,7 @@ function ros_topics_listener() {
 
         let velodyne_points_sub = rosNode.subscribe('/velodyne_points', sensor_msgs.PointCloud2,
           (data) => {  
-            if(!serverState.lidarDataOK && serverState.mappingRunning){
+            if(!serverState.lidarDataOK && serverState.processRunning){
                 serverState.lidarDataOK = true;
                 rosnodejs.log.info('lidar data OK!');
             }    
@@ -185,24 +197,19 @@ var prevGpsPositionOK = false;
 const timerCallback = async socket => {
 
     try {
-
         socket.emit("serverMessage", feedMessages);
         socket.broadcast.emit("serverMessage", feedMessages);
 
-        socket.emit("mappingRunning", serverState.mappingRunning);
-        socket.broadcast.emit("mappingRunning", serverState.mappingRunning);
-        
-        socket.emit("gpsPositionOK",serverState.gpsPositionOK);
-        socket.broadcast.emit("gpsPositionOK",serverState.gpsPositionOK);
-        
-        socket.emit("lidarDataOK", serverState.lidarDataOK);
-        socket.broadcast.emit("lidarDataOK", serverState.lidarDataOK);
+        socket.emit("processRunning", serverState.processRunning);
+        socket.broadcast.emit("processRunning", serverState.processRunning);
 
         console.log("timer callback 1000ms");
     } catch (error) {
         console.error(`Error: ${error.code}`);
     }
 
+    //============= monitor sensors data lost ========
+    //================================================
     if(!prevLidarDataOK && serverState.lidarDataOK){
         pushFeedMessage({"text":"Lidar data OK!"});
     }
@@ -211,49 +218,80 @@ const timerCallback = async socket => {
         pushFeedMessage({"text":"GPS Position OK!"});
     }
 
+    //============= main sequence process =============
+    //=================================================
     if(serverState.lidarDataOK && serverState.gpsPositionOK){
 
-        console.log("position OK, Lidar OK, Now start trajectory logging & mapping");
+        console.log("position OK, Lidar OK, Now start main process");
         
-        if(!serverState.runTrajectoryLogger){
+        if(clientRequest.RTKprocess && !clientRequest.PPKprocess){                          //RTK main process
+      
+            if(!serverState.runTrajectoryLogger){
 
-            childTrajectoryLogger = exec(`rosrun trajectory_logger trajectory_logger ${clientState.azimuth}`,{
+                childTrajectoryLogger = exec(`rosrun trajectory_logger trajectory_logger 0`,{
+                    silent: true, 
+                    async: true
+                });
+                console.log("start logging");
+                pushFeedMessage({"text":"Trajectory Logger running..."});
+                serverState.runTrajectoryLogger = true;
+            }
+            if(!serverState.runLidarMapper){
+    
+                childLidarMapping = exec('rosrun trajectory_logger lidar_mapper',{
+                    silent: true, 
+                    async: true
+                }); 
+                console.log("start mapper");
+                pushFeedMessage({"text":"Mapper running..."});
+                serverState.runLidarMapper = true;
+            }
+    
+            if(!serverState.recordMapperPoints){
+    
+                childRecordMapperPoints = exec(`bash ${pathToApp}/rtmapping.bash ${clientRequest.projectName}`,{
+                    silent: true, 
+                    async: true
+                });
+                pushFeedMessage({"text":"Recording mapped data"});
+                serverState.recordMapperPoints = true;
+            }    
+            
+        }else if(!clientRequest.RTKprocess && clientRequest.PPKprocess){                    //PPK main process
+
+            if(!serverState.runPPKLogger){
+
+                childPPKLogger = exec('rosrun trajectory_logger ppk_logger',{
+                    silent: true,
+                    async: true
+                });
+                console.log("start ppk logger");
+                pushFeedMessage({"text":"PPK Logger Running"});
+                serverState.runPPKLogger = true;
+            }
+
+            if(!serverState.recordPPKdata){
+                
+                childRecordPPKdata = exec(`bash ${pathToApp}/ppkData.bash ${clientRequest.projectName}`,{
+                    silent: true,
+                    async: true
+                });
+                pushFeedMessage({"text":"Recording PPK data"});
+                serverState.recordPPKdata = true;
+            }
+
+        }else{
+            console.log("client request not valid");
+        }
+
+        if(clientRequest.recordBag && !serverState.recordBag){
+    
+            childRecordBag = exec(`bash ${pathToApp}/record.bash ${clientRequest.projectName}`,{
                 silent: true, 
                 async: true
-            });
-            console.log("start logging");
-            pushFeedMessage({"text":"Trajectory Logger running..."});
-            serverState.runTrajectoryLogger = true;
-        }
-        if(!serverState.runLidarMapper){
-
-            childLidarMapping = exec('rosrun trajectory_logger lidar_mapper',{
-                silent: true, 
-                async: true
-            }); 
-            console.log("start mapper");
-            pushFeedMessage({"text":"Mapper running..."});
-            serverState.runLidarMapper = true;
-        }
-
-        if(clientState.recordBag && !serverState.recordBag){
-
-            childRecordBag = exec(`bash ${pathToApp}/record.bash ${clientState.projectName}`,{
-                        silent: true, 
-                        async: true
             });
             pushFeedMessage({"text":"Recording bag file"});
             serverState.recordBag = true;
-        }
-
-        if(clientState.realtimeMapping && !serverState.realtimeMapping){
-
-            childSaveMapped = exec(`bash ${pathToApp}/rtmapping.bash ${clientState.projectName}`,{
-                        silent: true, 
-                        async: true
-            });
-            pushFeedMessage({"text":"Recording mapped data"});
-            serverState.realtimeMapping = true;
         }
 
     }else{
@@ -267,10 +305,128 @@ const timerCallback = async socket => {
 io.on("connection", socket => {
     
     console.log("New client connected");
-    socket.emit("ServerState", serverState.mappingRunning);
-    socket.on("frontInput", function (data) {
-        console.log(data);
+
+    //======================= Main Process Handler =====================================
+    //==================================================================================
+
+    socket.on("clientRequest", function (data) {
+        clientRequest = data;
+        console.log(`params received`);
+
+        console.log(`project name ${clientRequest.projectName}`);
+        console.log(`save to ${clientRequest.saveTo}`);
+        console.log(`record bag ${clientRequest.recordBag}`);
+        console.log(`RTK mapping ${clientRequest.RTKprocess}`);
+        console.log(`PPK mapping ${clientRequest.PPKprocess}`);
     });
+
+    socket.on("processStart", function (data) {
+        if(data == true) {
+
+            console.log("client send processStart: " + data);
+
+            // childBagPlayer = exec('rosbag play /home/rekadaya//Downloads/2019-04-12-21-02-09.bag --clock',{
+            //     silent: true, 
+            //     async: true
+            // });
+
+            childSensorsLauncher = exec('roslaunch trajectory_logger devices.launch',{
+                silent: true,
+                async: true
+            });
+   
+            pushFeedMessage({"text": "PROCESS STARTED for "+ clientRequest.projectName +""});
+            serverState.processRunning = true;
+         
+        }else{
+
+            console.log("client terminated process, processStart: " + data);
+            serverState.processRunning = false;
+
+            if(clientRequest.RTKprocess && !clientRequest.PPKprocess){                      //RTK stop process
+                
+                if(serverState.recordMapperPoints) kill(childRecordMapperPoints.pid);
+                if(serverState.recordBag) kill(childRecordBag.pid);            
+                if(serverState.runLidarMapper) kill(childLidarMapping.pid, 'SIGINT');
+                if(serverState.runTrajectoryLogger) kill(childTrajectoryLogger.pid);
+    
+                if(serverState.recordMapperPoints){
+                    childToPCD = exec(`bash ${pathToApp}/topcd.bash ${clientRequest.projectName}`,{
+                        killSignal: 'SIGINT'
+                    }, 
+                    function(){
+        
+                        serverState.runTrajectoryLogger = false;
+                        serverState.runLidarMapper = false;
+                        pushFeedMessage({"text": "Export to PCD, done!"});
+                    });
+                }else{
+                    exec(`bash ${pathToApp}/nopcd.bash ${clientRequest.projectName}`,{
+                        killSignal: 'SIGINT'
+                    }, 
+                    function(){
+        
+                        serverState.runTrajectoryLogger = false;
+                        serverState.runLidarMapper = false;
+                        pushFeedMessage({"text": "No data mapped"});
+                    });
+                }
+    
+                kill(childSensorsLauncher.pid, 'SIGINT', function() {
+                // kill(childBagPlayer.pid, 'SIGINT', function() {
+    
+                    pushFeedMessage({"text": "RTK process stopped"});    
+                    
+                    serverState.gpsPositionOK = false;
+                    serverState.lidarDataOK = false;
+                    serverState.recordBag = false;
+                    serverState.recordMapperPoints = false;
+                });     
+
+            }else if(!clientRequest.RTKprocess && clientRequest.PPKprocess){                //PPK stop process
+                
+                if(serverState.recordPPKdata) kill(childRecordPPKdata.pid)
+                if(serverState.recordBag) kill(childRecordBag.pid);
+                if(serverState.runPPKLogger) kill(childPPKLogger.pid)
+
+                if(serverState.recordPPKdata){
+                    childToPCD = exec(`bash ${pathToApp}/ppk_postOp.bash ${clientRequest.projectName}`,{
+                        killSignal: 'SIGINT'
+                    }, 
+                    function(){
+        
+                        serverState.runPPKLogger = false;
+                        pushFeedMessage({"text": "Export to PCD, done!"});
+                        pushFeedMessage({"text": "Export to PKL, done!"});
+                    });
+                }else{
+                    exec(`bash ${pathToApp}/nopcd.bash ${clientRequest.projectName}`,{
+                        killSignal: 'SIGINT'
+                    }, 
+                    function(){
+        
+                        serverState.runPPKLogger = false;
+                        pushFeedMessage({"text": "No data logged"});
+                    });
+                }
+                
+                kill(childSensorsLauncher.pid, 'SIGINT', function() {
+                // kill(childBagPlayer.pid, 'SIGINT', function() {
+    
+                    pushFeedMessage({"text": "PPK process stopped"});    
+                    
+                    serverState.gpsPositionOK = false;
+                    serverState.lidarDataOK = false;
+                    serverState.recordBag = false;
+                    serverState.recordPPKdata = false;
+                });                   
+            }
+        }
+    });
+    //==================================================================================
+
+    //=============== POWER Operation HANDLER ==========================================
+    //==================================================================================
 
     socket.on("shutdown", function (data) {
         console.log(`NEW2 shutdown signal got,value: ${data}`);
@@ -308,6 +464,10 @@ io.on("connection", socket => {
             });
         }
     });
+    //==================================================================================
+
+    //========================= Removable Disk Handler =================================
+    //==================================================================================
 
     socket.on("rmvableDEject", function (data) {
         
@@ -362,7 +522,7 @@ io.on("connection", socket => {
             }
         }
         if(rmvableD_status === false) console.log("no removable disk");
-
+        //emit some feedback to client here
 
         // if(rmvableD_status) socket.emit("rmvableDProperties", drives[rmvableD_index]);
         if(rmvableD_status) {
@@ -388,12 +548,12 @@ io.on("connection", socket => {
             } catch (err) {
                 console.error(err)
             }                
-            // rmvableD_object.freeSpace = ;
-            // rmvableD_object.totalSpace = ;
         }
-            
-        // }
     });
+    //==================================================================================
+    
+    //======================= Project Folder Handler ===================================
+    //==================================================================================
 
     fs.readdir(pathToProject, function(err, items) {
         console.log(items);
@@ -411,15 +571,48 @@ io.on("connection", socket => {
         });
     });
 
-    socket.on("clientRequestParams", function (data) {
-        clientState = data;
-        console.log(`params received`);
-        console.log(`project name ${clientState.projectName}`);
-        console.log(`save to ${clientState.saveTo}`);
-        console.log(`record bag ${clientState.recordBag}`);
-        console.log(`RT mapping ${clientState.realtimeMapping}`);
-        console.log(`azimuth ${clientState.azimuth}`);
+    socket.on("copyProject", function(data) {
+        if(rmvableD_status){
+            
+            pathToCopyDst = rmvableD_object.mountPoint + "/"
+            console.log(pathToCopyDst);
+
+            //emit client feedback and make some graphical change (waiting copy process)
+            fs.copy(pathToProject+data,pathToCopyDst+data, function (err){
+                if (err){
+                    return console.error("error occured" + err);
+                }                
+                console.log("Copy Success!");
+                pushFeedMessage({"text":`Folder ${data} to ${rmvableD_object.name} copied!`});
+                //emit client feedback and make some graphical change 
+            })
+        }else{
+            console.log("no removable disk")
+            //write client feedback
+        }
+        // console.log(pathToProject+data);
     });
+
+    socket.on("deleteProject", function(data) {
+        fs.remove(pathToProject+data, function (err){
+            if(err){
+                return console.error("error occured" + err);
+            }
+            console.log("Project folder deleted!");
+            pushFeedMessage({"text":`Project ${data} deleted`})
+            
+            fs.readdir(pathToProject, function(err, items) {
+                console.log(items);
+                console.log("read folders");
+                socket.emit("serverFolderRead", items);
+                socket.broadcast.emit("serverFolderRead", items);
+            });
+        })
+    });
+    //==================================================================================
+
+    //======================= Magneto Calib Handler ====================================
+    //==================================================================================
 
     socket.on("magnetoCalibLaunch", function (data) {
         if(data == true) {
@@ -496,72 +689,8 @@ io.on("connection", socket => {
             });
         }
     });
-
-    socket.on("mappingStart", function (data) {
-        if(data == true) {
-
-            console.log("client send mappingStart: " + data);
-
-            // childBagPlayer = exec('rosbag play /home/rekadaya//Downloads/2019-04-12-21-02-09.bag --clock',{
-            //     silent: true, 
-            //     async: true
-            // });
-
-            childMapperLauncher = exec('roslaunch trajectory_logger devices.launch',{
-                silent: true,
-                async: true
-            });
-   
-            pushFeedMessage({"text": "MAPPING PROCESS STARTED for "+ clientState.projectName +""});
-            serverState.mappingRunning = true;
-         
-        }else{
-
-            console.log("client terminated process, mappingStart: " + data);
-            serverState.mappingRunning = false;
-
-            if(serverState.realtimeMapping && serverState.recordBag && serverState.runLidarMapper && serverState.runTrajectoryLogger ){
-
-                kill(childLidarMapping.pid, 'SIGINT');
-                kill(childTrajectoryLogger.pid);
-                kill(childRecordBag.pid);
-                kill(childSaveMapped.pid);                 //if using exec (should prefer this, killing all the process)    
-            }
-            kill(childMapperLauncher.pid, 'SIGINT', function() {
-            // kill(childBagPlayer.pid, 'SIGINT', function() {
-
-                pushFeedMessage({"text": "Mapping process stopped"});    
-                
-                serverState.gpsPositionOK = false;
-                serverState.lidarDataOK = false;
-                serverState.recordBag = false;
-                serverState.realtimeMapping = false;
-            }); 
-            
-            if(serverState.realtimeMapping){
-                childToPCD = exec(`bash ${pathToApp}/topcd.bash ${clientState.projectName}`,{
-                    killSignal: 'SIGINT'
-                }, 
-                function(){
-    
-                    serverState.runTrajectoryLogger = false;
-                    serverState.runLidarMapper = false;
-                    pushFeedMessage({"text": "Export to PCD, done!"});
-                });
-            }else{
-                exec(`bash ${pathToApp}/nopcd.bash ${clientState.projectName}`,{
-                    killSignal: 'SIGINT'
-                }, 
-                function(){
-    
-                    serverState.runTrajectoryLogger = false;
-                    serverState.runLidarMapper = false;
-                    pushFeedMessage({"text": "No data mapped"});
-                });
-            }
-            
-        }
-    });
+    //==================================================================================
+    //==================================================================================
 
     if(connectedClient == 0){
         setInterval( ()=>timerCallback(socket),1000);

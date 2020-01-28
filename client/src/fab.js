@@ -16,7 +16,7 @@ const style = {
 
 function FabOne(props) {
     
-    if(props.mappingRunningState){
+    if(props.processRunningState){
         
         return (
             <div>

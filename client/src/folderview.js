@@ -13,6 +13,7 @@ import Typography from '@material-ui/core/Typography';
 import { Menu, MenuList } from '@material-ui/core';
 import MenuItem from '@material-ui/core/MenuItem';
 
+
 import './Font.css';
 
 const styles = {
@@ -43,8 +44,21 @@ class folderView extends React.Component {
         this.setState({folderSelected: folder})
     };
     
+    handleCopy = () => {
+        this.props.copyOnClickHandler(this.state.folderSelected)
+        this.setState({anchorEl: null})
+        this.setState({folderSelected: null})
+    };
+    
+    handleDelete = () => {
+        this.props.deleteOnClickHandler(this.state.folderSelected)
+        this.setState({anchorEl: null})
+        this.setState({folderSelected: null})
+    };    
+    
     handleClose = () => {
         this.setState({anchorEl: null})
+        this.setState({folderSelected: null})
     };
     
     
@@ -87,8 +101,8 @@ class folderView extends React.Component {
                     open={Boolean(anchorEl)}
                     onClose={this.handleClose}
                 >
-                    <MenuItem selected={false} onClick={this.handleClose}>copy to drive</MenuItem>
-                    <MenuItem selected={false} onClick={this.handleClose}>delete</MenuItem>
+                    <MenuItem selected={false} onClick={this.handleCopy}>copy to drive</MenuItem>
+                    <MenuItem selected={false} onClick={this.handleDelete}>delete</MenuItem>
                     {/* <MenuItem selected={false} onClick={this.handleClose}>{`${this.state.folderSelected}`}</MenuItem> */}
                 </Menu>
             </div>

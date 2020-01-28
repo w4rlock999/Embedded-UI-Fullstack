@@ -1,10 +1,9 @@
 import React from 'react';
 import TextField from '@material-ui/core/TextField';
 import DialogContent from '@material-ui/core/DialogContent';
-import FormGroup from '@material-ui/core/FormGroup';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
-import Checkbox from '@material-ui/core/Checkbox';
-
+import RadioGroup from '@material-ui/core/RadioGroup';
+import Radio from '@material-ui/core/Radio';
 
 class dialogContentRender extends React.Component {
     
@@ -12,12 +11,12 @@ class dialogContentRender extends React.Component {
     state = {
         projectName: "projectName",
         saveTo: "~/simpanBag/",
-        azimuth: "0",
         recordBag: true,
-        realtimeMapping: true
+        RTKprocess: true,
+        PPKprocess: false,
     }
 
-    handleChange = name => event => {
+    handleNameChange = name => event => {
        
         this.setState({ 
         [name]: event.target.value }, 
@@ -26,14 +25,35 @@ class dialogContentRender extends React.Component {
         });
     };
 
-    handleCheckboxChange = name => event => {
+    // handleCheckboxChange = name => event => {
        
-        this.setState({ 
-        [name]: event.target.checked }, 
-        function () {
-            this.props.TextFieldUpdate(this.state);
-        });
+    //     if(name === 'RTK')
+
+    //     this.setState({ 
+    //     [name]: event.target.checked }, 
+    //     function () {
+    //         this.props.TextFieldUpdate(this.state);
+    //     });
+    // };
+
+    handleChange = event => {
+        if(event.target.value === "RTK"){
+            this.setState({RTKprocess: true},() => {
+                this.setState({PPKprocess: false}, () => {
+                    this.props.TextFieldUpdate(this.state);
+                });
+            });
+        }else
+        if(event.target.value === "PPK"){
+            this.setState({PPKprocess: true},() => {
+                this.setState({RTKprocess: false}, () => {
+                    this.props.TextFieldUpdate(this.state);
+                });
+            });
+        }
     };
+
+    handleValue 
 
     mappingDialog1 = () => {
         return(
@@ -44,7 +64,7 @@ class dialogContentRender extends React.Component {
                     id="projectname"
                     label="Project Name"
                     value={this.state.projectName}
-                    onChange={this.handleChange("projectName")}
+                    onChange={this.handleNameChange("projectName")}
                     fullWidth
                 />
                 {/* <TextField
@@ -55,28 +75,13 @@ class dialogContentRender extends React.Component {
                     onChange={this.handleChange("saveTo")}
                     fullWidth
                 /> */}
-                <FormGroup column>
-                <FormControlLabel
-                    control={
-                    <Checkbox
-                        checked={this.state.recordBag}
-                        onChange={this.handleCheckboxChange('recordBag')}
-                        // value={this.state.recordBag}
-                    />
-                    }
-                    label="Record .bag"
-                />
-                <FormControlLabel
-                    control={
-                    <Checkbox
-                        checked={this.state.realtimeMapping}
-                        onChange={this.handleCheckboxChange('realtimeMapping')}
-                        // value={this.state.realtimeMapping}
-                    />
-                    }
-                    label="Real-Time Mapping"
-                />
-                </FormGroup>
+                <RadioGroup
+                    value={(this.state.RTKprocess && "RTK")||(this.state.PPKprocess && "PPK")}
+                    onChange={this.handleChange}
+                >
+                    <FormControlLabel value="RTK" control={<Radio />} label="RTK mode" />
+                    <FormControlLabel value="PPK" control={<Radio />} label="PPK mode" />
+                </RadioGroup>
             </DialogContent>
         );
     };
@@ -101,14 +106,12 @@ class dialogContentRender extends React.Component {
 
     render() {
         
-        if (!this.props.dialogState) {
-            console.log("this is console log");    
-            return this.mappingDialog1() ;
-        } else {
-            console.log("this is console log");
-            return this.mappingDialog2();
-        }    
-        
+        // if (!this.props.dialogState) {  
+        //     return this.mappingDialog1() ;
+        // } else {
+        //     return this.mappingDialog2();
+        // }    
+        return this.mappingDialog1() ;
     }
 
 }
