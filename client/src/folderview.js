@@ -12,7 +12,8 @@ import Paper from '@material-ui/core/Paper';
 import Typography from '@material-ui/core/Typography';
 import { Menu, MenuList } from '@material-ui/core';
 import MenuItem from '@material-ui/core/MenuItem';
-
+import {withSnackbar} from 'notistack';
+import CloseIcon from  '@material-ui/icons/Close';
 
 import './Font.css';
 
@@ -37,6 +38,7 @@ class folderView extends React.Component {
     state = {
         anchorEl: null,
         folderSelected: null,
+        snackbarOpen: false,
     };
        
     handleClick = folder => event => {
@@ -61,14 +63,45 @@ class folderView extends React.Component {
         this.setState({folderSelected: null})
     };
     
-    
+    componentDidMount() {
+        this.props.socket.on("copyProcessStart", (data) => {
+            this.props.enqueueSnackbar('Copying Folder...', {
+                anchorOrigin: {
+                    vertical: 'bottom',
+                    horizontal: 'center',
+                },
+                variant: "info"
+            });
+        });
+
+        this.props.socket.on("copyProcessFinish", (data) => {
+            this.props.enqueueSnackbar(`Folder copied! ${data}`, {
+                anchorOrigin: {
+                    vertical: 'bottom',
+                    horizontal: 'center',
+                },
+                variant: "success",
+            });
+        });
+
+        this.props.socket.on("copyProcessError", (err) => {
+            this.props.enqueueSnackbar('Error copying folder, '+err, {
+                anchorOrigin: {
+                    vertical: 'bottom',
+                    horizontal: 'center',
+                },
+                variant: "error"
+            });
+        });
+    }
+
     render() {
 
         // const projectsFolders = this.props.projectsFolders;
         // const projectFolders = [];
         const projectFolders = this.props.projectFolders;
         const { anchorEl } = this.state;
-
+        
         return(
             <div style={styles.baseContainer}>
                 <List>
@@ -111,5 +144,5 @@ class folderView extends React.Component {
       
 }
 
-export default folderView;
+export default withSnackbar(folderView);
 

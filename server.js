@@ -1,25 +1,38 @@
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
+
+const port = process.env.PORT || 5000;
+const index = require("./routes/index");
+
 const drivelist = require('drivelist');
 const diskusage = require('diskusage');
+
 var exec = require('child_process').exec;
 var spawn = require('child_process').spawn;
 var execSync = require('child_process').execSync;
+
 const rosnodejs = require('rosnodejs');
 const std_msgs = rosnodejs.require('std_msgs').msg;
 const ekf_nav = rosnodejs.require('sbg_driver').msg;
 const sensor_msgs = rosnodejs.require('sensor_msgs').msg;
-const app = express();
-const port = process.env.PORT || 5000;
-const index = require("./routes/index");
+
 var psTree = require('ps-tree');
-// var fs = require('fs');
 const fs = require('fs-extra'); 
 
+var routineLog = require('debug')('routine');
+var processLog = require('debug')('process');
+
+//=======
+//=======
+
+const app = express();
 app.use(index);
 const server = http.createServer(app);
 const io = socketIo(server);
+//===========================================================
+//===========================================================
+
 
 
 var pathToProject = "/home/w4rlock999/oneMap-Project/";     //to develop
@@ -42,6 +55,7 @@ var serverState = {
     recordBag: false,
     magnetoCalib: "not ready",
 };
+
 var clientRequest = {
     projectName: "",
     saveTo: "",
@@ -51,7 +65,7 @@ var clientRequest = {
 };
 
 let childRoscore;
-let childBagPlayer; //sementara, ganti dengan mapping launch file
+let childBagPlayer;
 let childMagnetoCalibLauncher;
 let childMagnetoCalibStart;
 let childMagnetoCalibSave;
@@ -64,20 +78,6 @@ let childPPKLogger;
 let childRecordPPKdata;
 let childToPCD;
 let childShutdown;
-
-var date = new Date();
-var current_hours = date.getHours();
-var current_minute = date.getMinutes();
-
-var feedMessages = [{"text":"Tap on floating icon to start mapping.", 
-                     "time":( (current_hours<10)?`0${current_hours}`:`${current_hours}`) + (`:`) 
-                            + ((current_minute<10)?`0${current_minute}`:`${current_minute}`)}];
-
-var backendMsgFileDir = '../backendMsg.json';
-fs.writeFile(backendMsgFileDir, JSON.stringify(feedMessages, null, 2), function (err){
-    if(err) return console.log(err);
-    console.log("writing initial message file");
-});
 
 var driveNum;
 var driveInit;
@@ -96,6 +96,20 @@ var prevGpsPositionOK = false;
 
 var connectedClient = 0;
 
+var date = new Date();
+var current_hours = date.getHours();
+var current_minute = date.getMinutes();
+
+var feedMessages = [{"text":"Tap on floating icon to start mapping.", 
+                     "time":( (current_hours<10)?`0${current_hours}`:`${current_hours}`) + (`:`) 
+                            + ((current_minute<10)?`0${current_minute}`:`${current_minute}`)}];
+
+var backendMsgFileDir = '../backendMsg.json';
+fs.writeFile(backendMsgFileDir, JSON.stringify(feedMessages, null, 2), function (err){
+    if(err) return processLog(err);
+    processLog("writing initial message file");
+});
+
 function pushFeedMessage (newMessage) {
     
     var newDate = new Date();
@@ -108,8 +122,8 @@ function pushFeedMessage (newMessage) {
     
     feedMessages.unshift(newMessage);
     fs.writeFile(backendMsgFileDir, JSON.stringify(feedMessages, null, 2), function (err){
-        if(err) return console.log(err);
-        console.log("writing to log file");
+        if(err) return processLog(err);
+        processLog("writing to log file");
     });
 } 
 
@@ -139,15 +153,15 @@ var kill = function (pid, signal, callback) {
 const driveStart = async function(){
     drives = await drivelist.list();
     driveInit = drives.length;
-    console.log("initializing read drives....");
-    console.log(drives.length);
+    processLog("initializing read drives....");
+    processLog(drives.length);
 }
 
 const driveRead = async function(){
     drives = await drivelist.list();
-    console.log("read drives....");
-    console.log(drives);
-    console.log(drives.length);
+    processLog("read drives....");
+    processLog(drives);
+    processLog(drives.length);
     return drives.length;
 }
 
@@ -159,7 +173,7 @@ if (require.main === module) {
 
 io.on("connection", socket => {
     
-    console.log("New client connected");
+    routineLog("New client connected");
 
     //======================= Main Process Handler =====================================
     //==================================================================================
@@ -209,7 +223,7 @@ io.on("connection", socket => {
         connectedClient=connectedClient+1;
     }
 
-    socket.on("disconnect", () => console.log("client disconnected"));
+    socket.on("disconnect", () => routineLog("client disconnected"));
 });
 
 const timerCallback = async socket => {
@@ -221,9 +235,9 @@ const timerCallback = async socket => {
         socket.emit("processRunning", serverState.processRunning);
         socket.broadcast.emit("processRunning", serverState.processRunning);
 
-        console.log("timer callback 1000ms");
+        routineLog("timer callback 1000ms");
     } catch (error) {
-        console.error(`Error: ${error.code}`);
+        routineLog(`Error: ${error.code}`);
     }
 
     //============= monitor sensors data lost ========
@@ -240,7 +254,7 @@ const timerCallback = async socket => {
     //=================================================
     if(serverState.lidarDataOK && serverState.gpsPositionOK){
 
-        console.log("position OK, Lidar OK, Now start main process");
+        processLog("position OK, Lidar OK, Now start main process");
         
         if(clientRequest.RTKprocess && !clientRequest.PPKprocess){                          //RTK main process
       
@@ -250,7 +264,7 @@ const timerCallback = async socket => {
                     silent: true, 
                     async: true
                 });
-                console.log("start logging");
+                processLog("start logging");
                 pushFeedMessage({"text":"Trajectory Logger running..."});
                 serverState.runTrajectoryLogger = true;
             }
@@ -260,7 +274,7 @@ const timerCallback = async socket => {
                     silent: true, 
                     async: true
                 }); 
-                console.log("start mapper");
+                processLog("start mapper");
                 pushFeedMessage({"text":"Mapper running..."});
                 serverState.runLidarMapper = true;
             }
@@ -283,7 +297,7 @@ const timerCallback = async socket => {
                     silent: true,
                     async: true
                 });
-                console.log("start ppk logger");
+                processLog("start ppk logger");
                 pushFeedMessage({"text":"PPK Logger Running"});
                 serverState.runPPKLogger = true;
             }
@@ -299,7 +313,7 @@ const timerCallback = async socket => {
             }
 
         }else{
-            console.log("client request not valid");
+            processLog("client request not valid");
         }
 
         if(clientRequest.recordBag && !serverState.recordBag){
@@ -313,7 +327,7 @@ const timerCallback = async socket => {
         }
 
     }else{
-        console.log("system not ready, missing some topic(s)");
+        routineLog("system not ready, missing some topic(s)");
     }
 
     prevLidarDataOK = serverState.lidarDataOK;
@@ -356,20 +370,20 @@ function ros_topics_listener() {
 
 const clientRequestCallback = (data, socket) => {
     clientRequest = data;
-    console.log(`params received`);
+    processLog(`params received`);
 
-    console.log(`project name ${clientRequest.projectName}`);
-    console.log(`save to ${clientRequest.saveTo}`);
-    console.log(`record bag ${clientRequest.recordBag}`);
-    console.log(`RTK mapping ${clientRequest.RTKprocess}`);
-    console.log(`PPK mapping ${clientRequest.PPKprocess}`);
+    processLog(`project name ${clientRequest.projectName}`);
+    processLog(`save to ${clientRequest.saveTo}`);
+    processLog(`record bag ${clientRequest.recordBag}`);
+    processLog(`RTK mapping ${clientRequest.RTKprocess}`);
+    processLog(`PPK mapping ${clientRequest.PPKprocess}`);
 }
 
 const processStartCallback = (data, socket) => {
 
     if(data == true) {
 
-        console.log("client send processStart: " + data);
+        processLog("client send processStart: " + data);
 
         // childBagPlayer = exec('rosbag play /home/rekadaya//Downloads/2019-04-12-21-02-09.bag --clock',{
         //     silent: true, 
@@ -386,7 +400,7 @@ const processStartCallback = (data, socket) => {
      
     }else{
 
-        console.log("client terminated process, processStart: " + data);
+        processLog("client terminated process, processStart: " + data);
         serverState.processRunning = false;
 
         if(clientRequest.RTKprocess && !clientRequest.PPKprocess){                      //RTK stop process
@@ -472,70 +486,70 @@ const processStartCallback = (data, socket) => {
 
 const shutdownCallback = (data, socket) => {
    
-    console.log(`NEW2 shutdown signal got,value: ${data}`);
+    processLog(`NEW2 shutdown signal got,value: ${data}`);
 
     // spawn("shutdown",['now']);
     if(data){
 
         exec(`sudo shutdown now`, (error, stdout, stderr) => {
-            console.log("command called");
+            processLog("command called");
             
             if (error) {
-                console.error(`exec error: ${error}`);
+                processLog(`exec error: ${error}`);
                 return;
             }
-            console.log(`stdout: ${stdout}`);
-            console.log(`stderr: ${stderr}`);
+            processLog(`stdout: ${stdout}`);
+            processLog(`stderr: ${stderr}`);
         });
     }
 }
 
 const restartCallback = (data, socket) => {
         
-    console.log(`restart signal got,value: ${data}`);
+    processLog(`restart signal got,value: ${data}`);
     if(data){
         
         exec(`sudo shutdown -r now`, (error, stdout, stderr) => {
-            console.log("command called");
+            processLog("command called");
             
             if (error) {
-                console.error(`exec errpr: ${error}`);
+                processLog(`exec errpr: ${error}`);
                 return;
             }
-            console.log(`stdout: ${stdout}`);
-            console.log(`stderr: ${stderr}`);
+            processLog(`stdout: ${stdout}`);
+            processLog(`stderr: ${stderr}`);
         });
     }
 }
 
 const rmvableDEjectCallback = (data, socket) => {
         
-    console.log("ejecting...");
+    processLog("ejecting...");
     exec(`umount "${rmvableD_object.mountPoint}" `, async (error, stdout, stderr) => {
-        console.log("command called: eject");
+        processLog("command called: eject");
         
         if (error) {
-            console.error(`exec error: ${error}`);
+            processLog(`exec error: ${error}`);
             return;
         }
-        console.log(`stdout: ${stdout}`);
-        console.log(`stderr: ${stderr}`);
+        processLog(`stdout: ${stdout}`);
+        processLog(`stderr: ${stderr}`);
 
-        console.log("removable drive check...");
+        processLog("removable drive check...");
         driveNum = await driveRead();
-        console.log(driveNum);
+        processLog(driveNum);
         // if(driveInit < driveNum){
         var i;
         for(i = 0; i < driveNum; i++){
             if(drives[i].isUSB){
-                console.log("mountpoints after eject::");
-                console.log(drives[i].mountpoints.length);
+                processLog("mountpoints after eject::");
+                processLog(drives[i].mountpoints.length);
                 if(drives[i].mountpoints.length){
                     rmvableD_status = true;
                     rmvableD_index = i;
-                    console.log(`removable device detected on index ${rmvableD_index}`);
+                    processLog(`removable device detected on index ${rmvableD_index}`);
                 }else{
-                    console.log(`removable device unmounted`);
+                    processLog(`removable device unmounted`);
 
                     rmvableD_status = false;
                     socket.emit("rmvableDStatus", rmvableD_status);
@@ -543,50 +557,53 @@ const rmvableDEjectCallback = (data, socket) => {
                 }
             }
         }
-        if(rmvableD_status === false) console.log("no removable disk");
+        if(rmvableD_status === false) processLog("no removable disk");
     });
 }
 
 const rmvableDCheckCallback = async (data, socket) => {
     
-    console.log("removable drive check...");
+    processLog("removable drive check...");
     driveNum = await driveRead();
-    console.log(driveNum);
+    processLog(driveNum);
     // if(driveInit < driveNum){
     var i;
     for(i = 0; i < driveNum; i++){
         if(drives[i].isUSB){
             rmvableD_status = true;
             rmvableD_index = i;
-            console.log(`removable device detected on index ${rmvableD_index}`);
+            processLog(`removable device detected on index ${rmvableD_index}`);
         }
     }
-    if(rmvableD_status === false) console.log("no removable disk");
-    //emit some feedback to client here
+    if(rmvableD_status === false){
+        processLog("no removable disk");
+        socket.emit("removableDiskNotDetected", true);
+    } 
+    
 
     // if(rmvableD_status) socket.emit("rmvableDProperties", drives[rmvableD_index]);
     if(rmvableD_status) {
-        // console.log(drives[rmvableD_index].mountpoints[0]);
+        // processLog(drives[rmvableD_index].mountpoints[0]);
         rmvableD_object.name = drives[rmvableD_index].mountpoints[0].label;
         rmvableD_object.mountPoint = drives[rmvableD_index].mountpoints[0].path;
-        console.log(`removable drive name ${rmvableD_object.name}`);
-        console.log(`removable drive mountpoint ${rmvableD_object.mountPoint}`);
+        processLog(`removable drive name ${rmvableD_object.name}`);
+        processLog(`removable drive mountpoint ${rmvableD_object.mountPoint}`);
 
         try { 
 
             const diskRead = await diskusage.check(rmvableD_object.mountPoint);
             rmvableD_object.freeSpace = diskRead.free;
             rmvableD_object.totalSpace = diskRead.total; 
-            console.log(`Free space: ${diskRead.free}`);
+            processLog(`Free space: ${diskRead.free}`);
 
             socket.emit("rmvableDObject", rmvableD_object);
             socket.broadcast.emit("rmvableDObject", rmvableD_object);
-            console.log(`emit ${rmvableD_object}`);
+            processLog(`emit ${rmvableD_object}`);
 
             socket.emit("rmvableDStatus", rmvableD_status);
             socket.broadcast.emit("rmvableDStatus", rmvableD_status);
         } catch (err) {
-            console.error(err)
+            processLog(err)
         }                
     }
 }
@@ -594,8 +611,8 @@ const rmvableDCheckCallback = async (data, socket) => {
 const projectFolderCheck = (socket) => {
     
     fs.readdir(pathToProject, function(err, items) {
-        console.log(items);
-        console.log("read folders");
+        processLog(items);
+        processLog("read folders");
         socket.emit("serverFolderRead", items);
         socket.broadcast.emit("serverFolderRead", items);
     });
@@ -610,35 +627,40 @@ const copyProjectCallback = (data, socket) => {
     if(rmvableD_status){
         
         pathToCopyDst = rmvableD_object.mountPoint + "/"
-        console.log(pathToCopyDst);
+        processLog(pathToCopyDst);
 
-        //emit client feedback and make some graphical change (waiting copy process)
-        fs.copy(pathToProject+data,pathToCopyDst+data, function (err){
+        socket.emit("copyProcessStart", data);
+        fs.copy(pathToProject+data, pathToCopyDst+data, (err) => {
             if (err){
-                return console.error("error occured" + err);
-            }                
-            console.log("Copy Success!");
-            pushFeedMessage({"text":`Folder ${data} to ${rmvableD_object.name} copied!`});
-            //emit client feedback and make some graphical change 
+                socket.emit("copyProcessError",err);
+                pushFeedMessage({"text":`${err}`});
+                return processLog("error occured" + err);
+            }
+            socket.emit("copyProcessFinish", data );                
+            processLog("Copy Success! COOOOOY");
+            pushFeedMessage({"text":`Folder ${data} successfuly copied to ${rmvableD_object.name}`});
         })
     }else{
-        console.log("no removable disk")
-        //write client feedback
+        processLog("no removable disk")
+        var noDriveError = "no removable drive."
+        socket.emit("copyProcessError",noDriveError);
     }
-    // console.log(pathToProject+data);
+    // processLog(pathToProject+data);
 }
 
 const deleteProjectCallback = (data, socket) => {
   
     fs.remove(pathToProject+data, function (err){
         if(err){
-            return console.error("error occured" + err);
+            return processLog("error occured" + err);
         }
-        console.log("Project folder deleted!");
+        processLog("Project folder deleted!");
         pushFeedMessage({"text":`Project ${data} deleted`})
         projectFolderCheck(socket);
     })
 }
+
+var calibAccuracy = "";
 
 const magnetoCalibLaunchCallback = (data, socket) => {
     if(data == true) {
@@ -646,29 +668,29 @@ const magnetoCalibLaunchCallback = (data, socket) => {
 
         //better to be moved on node listener
         serverState.magnetoCalib = "ready";
-        console.log(`calib mag ${serverState.magnetoCalib}`);
+        processLog(`calib mag ${serverState.magnetoCalib}`);
         socket.emit("magnetoCalibState","ready");
         
         childMagnetoCalibLauncher.stdout.setEncoding('utf8');
         childMagnetoCalibLauncher.stdout.on('data', (data)=> {
-            console.log('magnetocalib log:' + data );
+            processLog('magnetocalib log:' + data );
             
             var calibOutput = data;
-            // console.log('CALIBOUTPUT log:' +  calibOutput );
+            // processLog('CALIBOUTPUT log:' +  calibOutput );
             if(calibOutput.includes("Accuracy")){
-                console.log("accuracy foun");
+                processLog("accuracy foun");
                 var stringPos = calibOutput.search('Accuracy');
-                var calibAccuracy = calibOutput.substring(stringPos,stringPos+29);
+                calibAccuracy = calibOutput.substring(stringPos,stringPos+29);
                 socket.emit("magnetoCalibAccuracy", calibAccuracy);
             }
         });
     
         childMagnetoCalibLauncher.stderr.on('data', (data)=> {
-            console.log(`magnetocalib error: ${data}`);
+            processLog(`magnetocalib error: ${data}`);
         });
     
         childMagnetoCalibLauncher.stdout.on('close', (code)=> {
-            console.log(`magnetocalib closed with code: ${code}`);
+            processLog(`magnetocalib closed with code: ${code}`);
         });
 
     }else{
@@ -677,7 +699,7 @@ const magnetoCalibLaunchCallback = (data, socket) => {
 
         //better to be moved on node listener
         serverState.magnetoCalib = "not ready";
-        console.log(`calib mag ${serverState.magnetoCalib}`);
+        processLog(`calib mag ${serverState.magnetoCalib}`);
         socket.emit("magnetoCalibState","not ready");            
     }
 }
@@ -691,7 +713,7 @@ const magnetoCalibStartCallback = (data, socket) => {
         }, function(){
             serverState.magnetoCalib = "calibrating";
             socket.emit("magnetoCalibState","calibrating");
-            console.log("move start calib");                    
+            processLog("move start calib");                    
         });
     }else{
         childMagnetoCalibStart = exec('rosservice call mag_calibration',{
@@ -700,7 +722,7 @@ const magnetoCalibStartCallback = (data, socket) => {
         }, function(){
             serverState.magnetoCalib = "ready";
             socket.emit("magnetoCalibState","ready");                
-            console.log("move end calib");
+            processLog("move end calib");
         });
     }
 }
@@ -712,10 +734,11 @@ const magnetoCalibSaveCallback = (data, socket) => {
             silent: true,
             async: true
         }, function(){
-            console.log(`calibration saved`);
+            processLog(`calibration saved`);
+            pushFeedMessage({"text":`${calibAccuracy}`});
             // calibration result on pushfeed
         });
     }
 }
 
-server.listen(port, () => console.log(`Listening on port ${port}`));
+server.listen(port, () => routineLog(`Listening on port ${port}`));

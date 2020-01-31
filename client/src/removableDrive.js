@@ -1,6 +1,9 @@
 import React from 'react'
 import Fab from '@material-ui/core/Fab'
 import LinearProgress from '@material-ui/core/LinearProgress'
+import PropTypes from 'prop-types';
+import Button from '@material-ui/core/Button';
+import { withSnackbar } from 'notistack';
 
 import './Font.css'
 
@@ -28,22 +31,33 @@ const styles={
         marginTop: 65,
         textAlign: 'center',
     },
-
 }
 
 var pageState = "noDrive";
 // var pageState = "driveDetected";
 
 class removableDrive extends React.Component {
-    
-    
-    render() {
 
+    componentWillMount () {
+        this.props.socket.on("removableDiskNotDetected", (data) => {
+            this.props.enqueueSnackbar('No Removable Drive Detected!', {
+                anchorOrigin: {
+                    vertical: 'bottom',
+                    horizontal: 'center',
+                },
+                variant: 'error',
+            });
+        });
+    }
+
+    render() {
+        
         if(this.props.status === false) pageState = "noDrive";
         else if(this.props.status === true) pageState = "driveDetected";
 
         return (
             <div style={styles.root}>
+                
                 { pageState === "noDrive" && 
                     <div>
                         <p style={styles.headerText}>No removable drive detected</p>
@@ -99,4 +113,8 @@ class removableDrive extends React.Component {
     }
 }
 
-export default removableDrive;
+removableDrive.propTypes = {
+    enqueueSnackbar: PropTypes.func.isRequired,
+};
+
+export default withSnackbar(removableDrive);

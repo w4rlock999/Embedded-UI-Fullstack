@@ -1,7 +1,6 @@
 {
-  "name": "react-material-ui",
+  "name": "onemap-server",
   "version": "1.0.0",
-  "proxy": "http://localhost:5000/",
   "scripts": {
     "client": "cd client && yarn start",
     "server": "nodemon server.js",
@@ -9,6 +8,7 @@
   },
   "dependencies": {
     "body-parser": "^1.18.3",
+    "debug": "^4.1.1",
     "diskusage": "^1.1.3",
     "drivelist": "^8.0.6",
     "express": "^4.16.4",

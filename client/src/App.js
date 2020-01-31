@@ -47,6 +47,8 @@ import socketIOClient from "socket.io-client"
 import { DialogContentText } from '@material-ui/core';
 import { red } from '@material-ui/core/colors';
 
+import { SnackbarProvider } from "notistack";
+
 import './Font.css';
 
 const drawerAppBarStyle = {
@@ -57,7 +59,6 @@ const drawerWidth = 240;
 
 const styles = theme => ({
   root: {
-    backgroundColor: 'white',
     display: 'flex',
   },
   drawer: {
@@ -104,6 +105,13 @@ const styles = theme => ({
     marginBottom: 30,
     width: '100%',
   },
+  containerMainFull: {
+    marginTop: 200,
+    width: '100%',
+    height: '100%',
+    // overflow: 'hidden',
+    // position: 'fixed'
+  },
   titleText: {
       margin: 'auto',
       marginBottom: 50,
@@ -147,7 +155,7 @@ class App extends React.Component {
     startDialogOpen: false,
     stopDialogOpen: false,
     powerDialogOpen: false,
-    endpoint: "http://localhost:5000",
+    endpoint: "http://localhost:5000",    //TO SET SERVER ADDRESS 
     drawer: "mapping",
     magnetoCalib: "not ready",
     magnetoCalibAccuracy: "no accuracy data",
@@ -309,7 +317,6 @@ class App extends React.Component {
             <TypoGraphy variant="subheading"
                         color="inherit"
             >
-                 
             </TypoGraphy>           
           </Toolbar>
         </AppBar> */}
@@ -366,7 +373,9 @@ class App extends React.Component {
     );
 
     return (
-      <div className={classes.root} style={{minHeight: '100vh'}}>
+      <div className={classes.root} style={{minHeight: '100vh', 
+                                            backgroundColor: (this.state.magnetoCalib === "calibrating" 
+                                            && this.state.drawer === "magnetoCalib" ) ? "#002b36":"white" }}>
 
         {/* //------------------------- AppBar Render
         //--------------------------------------- */}
@@ -549,8 +558,15 @@ class App extends React.Component {
 
         { this.state.drawer === "saved" && 
           <div class={classes.containerMain}>
-            <FolderView projectFolders={projectFolders} copyOnClickHandler={this.copyOnClickHandler} 
-                        deleteOnClickHandler={this.deleteOnClickHandler}/>
+            <SnackbarProvider maxSnack={3}
+                              anchorOrigin={{
+                                vertical: 'bottom',
+                                horizontal: 'center',
+                              }}>
+              <FolderView projectFolders={projectFolders} copyOnClickHandler={this.copyOnClickHandler} 
+                          deleteOnClickHandler={this.deleteOnClickHandler}
+                          socket={socket} />
+            </SnackbarProvider>
           </div>
         }
 
@@ -562,20 +578,28 @@ class App extends React.Component {
         { this.state.drawer === "removableDrive" && (
             <div class={classes.containerMain} style={{textAlign: 'center',}}>
               {/* <div style={{display: 'inline-block'}}> */}
-                <RemovableDrive 
-                status={removableDiskStatus}
-                object={removableDiskObject}
-                checkOnClickHandler={this.rmvableDCheckClickHandler} 
-                ejectOnClickHandler={this.rmvableDEjectClickHandler}/>
+                <SnackbarProvider maxSnack={3} 
+                                  anchorOrigin={{
+                                    vertical: 'bottom',
+                                    horizontal: 'center',
+                                  }}>
+                  <RemovableDrive 
+                  status={removableDiskStatus}
+                  object={removableDiskObject}
+                  checkOnClickHandler={this.rmvableDCheckClickHandler} 
+                  ejectOnClickHandler={this.rmvableDEjectClickHandler}
+                  socket={socket}/>
+                </SnackbarProvider>
               {/* </div>   */}
             </div>
           )
         }
 
         { this.state.drawer === "magnetoCalib" && (
-            <div class={classes.containerMain}>
+            <div class={classes.containerMainFull}>
               <MagnetoCalib
               magnetoCalibState={this.state.magnetoCalib}
+              // magnetoCalibState="calibrating"
               magnetoCalibAccuracy={this.state.magnetoCalibAccuracy}
               calibLaunchOnClickHandler={this.calibLaunchClickHandler}
               calibStartOnClickHandler={this.calibStartClickHandler}
