@@ -155,7 +155,7 @@ class App extends React.Component {
     startDialogOpen: false,
     stopDialogOpen: false,
     powerDialogOpen: false,
-    endpoint: "http://localhost:5000",    //TO SET SERVER ADDRESS 
+    endpoint: "http://localhost:5000",    //TO SET SERVER ADDRESS TODO set to node_env
     drawer: "mapping",
     magnetoCalib: "not ready",
     magnetoCalibAccuracy: "no accuracy data",

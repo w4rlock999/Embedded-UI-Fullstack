@@ -34,6 +34,7 @@ const io = socketIo(server);
 //===========================================================
 
 
+//todo set to node_env
 
 var pathToProject = "/home/w4rlock999/oneMap-Project/";     //to develop
 var pathToApp = "/home/w4rlock999/Workspace/web/onemap-fullstack";  //to develop
