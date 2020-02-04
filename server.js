@@ -294,7 +294,7 @@ const timerCallback = async socket => {
 
             if(!serverState.runPPKLogger){
 
-                childPPKLogger = exec('rosrun trajectory_logger ppk_logger',{
+                childPPKLogger = exec('rosrun trajectory_logger ppk_logger 0',{
                     silent: true,
                     async: true
                 });

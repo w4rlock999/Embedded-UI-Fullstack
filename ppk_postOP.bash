@@ -5,8 +5,9 @@ Folder=~/oneMap-Project/$1/map
 
 cd $Folder
 mkdir pcd
+mkdir pkl
 pwd
 sleep 3
 rosrun pcl_ros bag_to_pcd *.bag /velodyne_points ./pcd/
 sleep 3
-rosrun trajectory_logger ppk_bag_to_pkl *.bag ./pkl/
+rosrun trajectory_logger ppk_bag_to_pkl.py *.bag ./pkl/
