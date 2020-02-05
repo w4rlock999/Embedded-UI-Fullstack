@@ -321,15 +321,15 @@ const timerCallback = async socket => {
             processLog("client request not valid");
         }
 
-        if(clientRequest.recordBag && !serverState.recordBag){
+        // if(clientRequest.recordBag && !serverState.recordBag){
     
-            childRecordBag = exec(`bash ${pathToApp}/record.bash ${clientRequest.projectName}`,{
-                silent: true, 
-                async: true
-            });
-            pushFeedMessage({"text":"Recording bag file"});
-            serverState.recordBag = true;
-        }
+        //     childRecordBag = exec(`bash ${pathToApp}/record.bash ${clientRequest.projectName}`,{
+        //         silent: true, 
+        //         async: true
+        //     });
+        //     pushFeedMessage({"text":"Recording bag file"});
+        //     serverState.recordBag = true;
+        // }
 
     }else{
         routineLog("system not ready, missing some topic(s)");
