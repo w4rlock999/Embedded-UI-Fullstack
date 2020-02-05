@@ -451,7 +451,7 @@ const processStartCallback = (data, socket) => {
             if(serverState.runPPKLogger) kill(childPPKLogger.pid)
 
             if(serverState.recordPPKdata){
-                childToPCD = exec(`bash ${pathToApp}/ppk_postOp.bash ${clientRequest.projectName}`,{
+                childToPCD = exec(`bash ${pathToApp}/ppk_postOP.bash ${clientRequest.projectName}`,{
                     killSignal: 'SIGINT'
                 }, 
                 function(){
