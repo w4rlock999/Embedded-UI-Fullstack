@@ -8,3 +8,5 @@ mkdir pcd
 pwd
 sleep 3
 rosrun pcl_ros bag_to_pcd *.bag /mapper_points ./pcd/
+sleep 3
+rm *.bag

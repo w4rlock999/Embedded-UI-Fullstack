@@ -137,7 +137,7 @@ let socket;
 let childState = {
   projectName: "projectName",
   saveTo: "~/simpanBag/",
-  recordBag: true,
+  recordBag: false,
   RTKprocess: true,
   PPKprocess: false,
 }; 

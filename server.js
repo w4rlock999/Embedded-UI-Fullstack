@@ -33,14 +33,18 @@ const io = socketIo(server);
 //===========================================================
 //===========================================================
 
+if(process.env.NODE_ENV === 'production') {
+    
+    var pathToProject = "/home/rekadaya/oneMap-Project/";       //to deploy
+    var pathToApp = "/home/rekadaya/ui_dir/onemap-fullstack";   //to deploy
+    var pathToCopyDst = "/home/rekadaya/cobaCopyDisini/"
 
-//todo set to node_env
+}else{
 
-var pathToProject = "/home/w4rlock999/oneMap-Project/";     //to develop
-var pathToApp = "/home/w4rlock999/Workspace/web/onemap-fullstack";  //to develop
-var pathToCopyDst = "/home/w4rlock999/cobaCopyDisini/"
-// var pathToProject = "/home/rekadaya/oneMap-Project/";       //to deploy
-// var pathToApp = "/home/rekadaya/ui_dir/onemap-fullstack";   //to deploy
+    var pathToProject = "/home/w4rlock999/oneMap-Project/";              //to develop
+    var pathToApp = "/home/w4rlock999/Workspace/web/onemap-fullstack";  //to develop
+    var pathToCopyDst = "/home/w4rlock999/cobaCopyDisini/"    
+}
 
 var serverState = {
     processRunning: false,
@@ -60,7 +64,7 @@ var serverState = {
 var clientRequest = {
     projectName: "",
     saveTo: "",
-    recordBag: true,
+    recordBag: false,
     RTKprocess: true,
     PPKprocess: false,
 };
