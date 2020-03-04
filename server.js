@@ -14,7 +14,7 @@ var execSync = require('child_process').execSync;
 
 const rosnodejs = require('rosnodejs');
 const std_msgs = rosnodejs.require('std_msgs').msg;
-const ekf_nav = rosnodejs.require('sbg_driver').msg;
+const sbg_driver_msg = rosnodejs.require('sbg_driver').msg;
 const sensor_msgs = rosnodejs.require('sensor_msgs').msg;
 
 var psTree = require('ps-tree');
@@ -50,6 +50,7 @@ var serverState = {
     processRunning: false,
     gpsPositionOK: false,
     lidarDataOK: false,
+    ppkQuatOK: false,
     PPKprocess: false,
     runPPKLogger: false,
     recordPPKdata: false,
@@ -303,11 +304,11 @@ const timerCallback = async socket => {
                     async: true
                 });
                 processLog("start ppk logger");
-                pushFeedMessage({"text":"PPK Logger Running"});
+                pushFeedMessage({"text":"PPK process running, wait for record process!"});
                 serverState.runPPKLogger = true;
             }
 
-            if(!serverState.recordPPKdata){
+            if(!serverState.recordPPKdata && serverState.ppkQuatOK){
                 
                 childRecordPPKdata = exec(`bash ${pathToApp}/ppkData.bash ${clientRequest.projectName}`,{
                     silent: true,
@@ -348,7 +349,7 @@ function ros_topics_listener() {
         //================= Check if sensors data are ready ======================
         //========================================================================
 
-        let ekf_nav_sub = rosNode.subscribe('/ekf_nav', ekf_nav.SbgEkfNav,
+        let ekf_nav_sub = rosNode.subscribe('/ekf_nav', sbg_driver_msg.SbgEkfNav,
           (data) => { 
         
             if(data.status.gps1_pos_used && !serverState.gpsPositionOK && serverState.processRunning){
@@ -370,6 +371,15 @@ function ros_topics_listener() {
             }    
           }
         );
+
+        let ppk_quat_sub = rosNode.subscribe('/ppk_quat', sbg_driver_msg.SbgEkfQuat,
+            (data) => {
+
+                serverState.ppkQuatOK = true;
+                rosnodejs.log.info('PPK rotational data OK!');
+            }
+        );  
+
       });
 };
 
@@ -444,6 +454,7 @@ const processStartCallback = (data, socket) => {
                 
                 serverState.gpsPositionOK = false;
                 serverState.lidarDataOK = false;
+                serverState.ppkQuatOK = false;
                 serverState.recordBag = false;
                 serverState.recordMapperPoints = false;
             });     
