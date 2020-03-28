@@ -14,7 +14,7 @@ var execSync = require('child_process').execSync;
 
 const rosnodejs = require('rosnodejs');
 const std_msgs = rosnodejs.require('std_msgs').msg;
-const sbg_driver_msg = rosnodejs.require('sbg_driver').msg;
+const sbg_driver = rosnodejs.require('sbg_driver').msg;
 const sensor_msgs = rosnodejs.require('sensor_msgs').msg;
 
 var psTree = require('ps-tree');
@@ -50,7 +50,7 @@ var serverState = {
     processRunning: false,
     gpsPositionOK: false,
     lidarDataOK: false,
-    ppkQuatOK: false,
+    readyToFly: false,
     PPKprocess: false,
     runPPKLogger: false,
     recordPPKdata: false,
@@ -99,6 +99,7 @@ var drives;
 
 var prevLidarDataOK = false;
 var prevGpsPositionOK = false;
+var prevReadyToFly = false;
 
 var connectedClient = 0;
 
@@ -256,6 +257,11 @@ const timerCallback = async socket => {
         pushFeedMessage({"text":"GPS Position OK!"});
     }
 
+    if(!prevReadyToFly && serverState.readyToFly){
+        pushFeedMessage({"text":"System All Clear, Ready To Fly!"})
+    }
+
+    if(!prev)
     //============= main sequence process =============
     //=================================================
     if(serverState.lidarDataOK && serverState.gpsPositionOK){
@@ -304,11 +310,11 @@ const timerCallback = async socket => {
                     async: true
                 });
                 processLog("start ppk logger");
-                pushFeedMessage({"text":"PPK process running, wait for record process!"});
+                pushFeedMessage({"text":"PPK Logger Running"});
                 serverState.runPPKLogger = true;
             }
 
-            if(!serverState.recordPPKdata && serverState.ppkQuatOK){
+            if(!serverState.recordPPKdata){
                 
                 childRecordPPKdata = exec(`bash ${pathToApp}/ppkData.bash ${clientRequest.projectName}`,{
                     silent: true,
@@ -338,6 +344,7 @@ const timerCallback = async socket => {
 
     prevLidarDataOK = serverState.lidarDataOK;
     prevGpsPositionOK = serverState.gpsPositionOK;
+    prevReadyToFly = serverState.readyToFly;
 };
 
 function ros_topics_listener() {
@@ -349,7 +356,7 @@ function ros_topics_listener() {
         //================= Check if sensors data are ready ======================
         //========================================================================
 
-        let ekf_nav_sub = rosNode.subscribe('/ekf_nav', sbg_driver_msg.SbgEkfNav,
+        let ekf_nav_sub = rosNode.subscribe('/ekf_nav', sbg_driver.SbgEkfNav,
           (data) => { 
         
             if(data.status.gps1_pos_used && !serverState.gpsPositionOK && serverState.processRunning){
@@ -372,14 +379,14 @@ function ros_topics_listener() {
           }
         );
 
-        let ppk_quat_sub = rosNode.subscribe('/ppk_quat', sbg_driver_msg.SbgEkfQuat,
-            (data) => {
-
-                serverState.ppkQuatOK = true;
-                rosnodejs.log.info('PPK rotational data OK!');
+        let ppk_quat_sub = rosNode.subscribe('/ppk_quat', sbg_driver.SbgEkfQuat,
+          (data) => {
+            if(!serverState.readyToFly && serverState.processRunning){
+                serverState.readyToFly = true;
+                rosnodejs.log.info('ready to fly!');
             }
-        );  
-
+          }
+        );
       });
 };
 
@@ -454,9 +461,13 @@ const processStartCallback = (data, socket) => {
                 
                 serverState.gpsPositionOK = false;
                 serverState.lidarDataOK = false;
-                serverState.ppkQuatOK = false;
+                serverState.readyToFly = false;
                 serverState.recordBag = false;
                 serverState.recordMapperPoints = false;
+            
+                prevLidarDataOK = false;
+                prevGpsPositionOK = false;
+                prevReadyToFly = false;
             });     
 
         }else if(!clientRequest.RTKprocess && clientRequest.PPKprocess){                //PPK stop process
@@ -493,8 +504,13 @@ const processStartCallback = (data, socket) => {
                 
                 serverState.gpsPositionOK = false;
                 serverState.lidarDataOK = false;
+                serverState.readyToFly = false;
                 serverState.recordBag = false;
                 serverState.recordPPKdata = false;
+
+                prevLidarDataOK = false;
+                prevGpsPositionOK = false;
+                prevReadyToFly = false;            
             });                   
         }
     }
