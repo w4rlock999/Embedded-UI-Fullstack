@@ -50,7 +50,7 @@ var serverState = {
     processRunning: false,
     gpsPositionOK: false,
     lidarDataOK: false,
-    readyToFly: false,
+    PPKQuatOK: false,
     PPKprocess: false,
     runPPKLogger: false,
     recordPPKdata: false,
@@ -60,6 +60,7 @@ var serverState = {
     recordMapperPoints: false,
     recordBag: false,
     magnetoCalib: "not ready",
+    readyToFly: false,
 };
 
 var clientRequest = {
@@ -99,7 +100,7 @@ var drives;
 
 var prevLidarDataOK = false;
 var prevGpsPositionOK = false;
-var prevReadyToFly = false;
+var prevPPKQuatOK = false;
 
 var connectedClient = 0;
 
@@ -257,11 +258,10 @@ const timerCallback = async socket => {
         pushFeedMessage({"text":"GPS Position OK!"});
     }
 
-    if(!prevReadyToFly && serverState.readyToFly){
-        pushFeedMessage({"text":"System All Clear, Ready To Fly!"})
-    }
+    // if(!prevPPKQuatOK&& serverState.PPKQuatOK){
+    //     pushFeedMessage({"text":"System All Clear, Ready To Fly!"})
+    // }
 
-    if(!prev)
     //============= main sequence process =============
     //=================================================
     if(serverState.lidarDataOK && serverState.gpsPositionOK){
@@ -310,18 +310,24 @@ const timerCallback = async socket => {
                     async: true
                 });
                 processLog("start ppk logger");
-                pushFeedMessage({"text":"PPK Logger Running"});
+                pushFeedMessage({"text":"PPK Process Running, Wait For Record Process!"});
                 serverState.runPPKLogger = true;
             }
 
-            if(!serverState.recordPPKdata){
+            if(!serverState.recordPPKdata && serverState.PPKQuatOK){
                 
                 childRecordPPKdata = exec(`bash ${pathToApp}/ppkData.bash ${clientRequest.projectName}`,{
                     silent: true,
                     async: true
                 });
                 pushFeedMessage({"text":"Recording PPK data"});
+                // pushFeedMessage({"text":"System All Clear, Ready To Fly!"})
                 serverState.recordPPKdata = true;
+            }
+
+            if(!serverState.readyToFly && serverState.recordPPKdata){
+                pushFeedMessage({"text":"System All Clear, Ready To Fly!"})
+                serverState.readyToFly = true;
             }
 
         }else{
@@ -344,7 +350,7 @@ const timerCallback = async socket => {
 
     prevLidarDataOK = serverState.lidarDataOK;
     prevGpsPositionOK = serverState.gpsPositionOK;
-    prevReadyToFly = serverState.readyToFly;
+    prevPPKQuatOK = serverState.PPKQuatOK;
 };
 
 function ros_topics_listener() {
@@ -381,9 +387,9 @@ function ros_topics_listener() {
 
         let ppk_quat_sub = rosNode.subscribe('/ppk_quat', sbg_driver.SbgEkfQuat,
           (data) => {
-            if(!serverState.readyToFly && serverState.processRunning){
-                serverState.readyToFly = true;
-                rosnodejs.log.info('ready to fly!');
+            if(!serverState.PPKQuatOK && serverState.processRunning){
+                serverState.PPKQuatOK = true;
+                rosnodejs.log.info('PPK quaternion received');
             }
           }
         );
@@ -441,6 +447,7 @@ const processStartCallback = (data, socket) => {
                     serverState.runTrajectoryLogger = false;
                     serverState.runLidarMapper = false;
                     pushFeedMessage({"text": "Export to PCD, done!"});
+                    pushFeedMessage({"text": "All Process Finished!"});
                 });
             }else{
                 exec(`bash ${pathToApp}/nopcd.bash ${clientRequest.projectName}`,{
@@ -451,6 +458,7 @@ const processStartCallback = (data, socket) => {
                     serverState.runTrajectoryLogger = false;
                     serverState.runLidarMapper = false;
                     pushFeedMessage({"text": "No data mapped"});
+                    pushFeedMessage({"text": "All Process Finished!"});
                 });
             }
 
@@ -461,13 +469,14 @@ const processStartCallback = (data, socket) => {
                 
                 serverState.gpsPositionOK = false;
                 serverState.lidarDataOK = false;
+                serverState.PPKQuatOK = false;
                 serverState.readyToFly = false;
                 serverState.recordBag = false;
                 serverState.recordMapperPoints = false;
             
                 prevLidarDataOK = false;
                 prevGpsPositionOK = false;
-                prevReadyToFly = false;
+                prevPPKQuatOK = false;
             });     
 
         }else if(!clientRequest.RTKprocess && clientRequest.PPKprocess){                //PPK stop process
@@ -485,6 +494,7 @@ const processStartCallback = (data, socket) => {
                     serverState.runPPKLogger = false;
                     pushFeedMessage({"text": "Export to PCD, done!"});
                     pushFeedMessage({"text": "Export to PKL, done!"});
+                    pushFeedMessage({"text": "All Process Finished!"});
                 });
             }else{
                 exec(`bash ${pathToApp}/nopcd.bash ${clientRequest.projectName}`,{
@@ -494,6 +504,7 @@ const processStartCallback = (data, socket) => {
     
                     serverState.runPPKLogger = false;
                     pushFeedMessage({"text": "No data logged"});
+                    pushFeedMessage({"text":"All Process Finished!"});
                 });
             }
             
@@ -504,13 +515,14 @@ const processStartCallback = (data, socket) => {
                 
                 serverState.gpsPositionOK = false;
                 serverState.lidarDataOK = false;
+                serverState.PPKQuatOK = false;
                 serverState.readyToFly = false;
                 serverState.recordBag = false;
                 serverState.recordPPKdata = false;
 
                 prevLidarDataOK = false;
                 prevGpsPositionOK = false;
-                prevReadyToFly = false;            
+                prevPPKQuatOK = false;            
             });                   
         }
     }
