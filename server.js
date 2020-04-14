@@ -50,6 +50,7 @@ var serverState = {
     processRunning: false,
     gpsPositionOK: false,
     lidarDataOK: false,
+    RTKMapPtsOK: false,
     PPKQuatOK: false,
     PPKprocess: false,
     runPPKLogger: false,
@@ -272,7 +273,7 @@ const timerCallback = async socket => {
       
             if(!serverState.runTrajectoryLogger){
 
-                childTrajectoryLogger = exec(`rosrun trajectory_logger trajectory_logger 0`,{
+                childTrajectoryLogger = exec(`rosrun trajectory_logger rtk_logger 0`,{
                     silent: true, 
                     async: true
                 });
@@ -282,7 +283,7 @@ const timerCallback = async socket => {
             }
             if(!serverState.runLidarMapper){
     
-                childLidarMapping = exec('rosrun trajectory_logger lidar_mapper',{
+                childLidarMapping = exec('rosrun trajectory_logger rtk_mapper',{
                     silent: true, 
                     async: true
                 }); 
@@ -291,7 +292,7 @@ const timerCallback = async socket => {
                 serverState.runLidarMapper = true;
             }
     
-            if(!serverState.recordMapperPoints){
+            if(!serverState.recordMapperPoints && serverState.RTKMapPtsOK){
     
                 childRecordMapperPoints = exec(`bash ${pathToApp}/rtmapping.bash ${clientRequest.projectName}`,{
                     silent: true, 
@@ -299,7 +300,12 @@ const timerCallback = async socket => {
                 });
                 pushFeedMessage({"text":"Recording mapped data"});
                 serverState.recordMapperPoints = true;
-            }    
+            }
+            
+            if(!serverState.readyToFly && serverState.recordMapperPoints){
+                pushFeedMessage({"text":"System All Clear, Ready To Fly!"});
+                serverState.readyToFly = true;
+            }
             
         }else if(!clientRequest.RTKprocess && clientRequest.PPKprocess){                    //PPK main process
 
@@ -393,6 +399,14 @@ function ros_topics_listener() {
             }
           }
         );
+
+        let rtk_map_pts_sub = rosNode.subscribe('/mapper_points', sensor_msgs.PointCloud2,
+            (data) => {
+                if(!serverState.RTKMapPtsOK && serverState.processRunning){
+                    serverState.RTKMapPtsOK = true;
+                    rosnodejs.log.info('RTK mapper points received');
+                }
+            })
       });
 };
 
@@ -469,7 +483,7 @@ const processStartCallback = (data, socket) => {
                 
                 serverState.gpsPositionOK = false;
                 serverState.lidarDataOK = false;
-                serverState.PPKQuatOK = false;
+                serverState.RTKMapPtsOK = false; 
                 serverState.readyToFly = false;
                 serverState.recordBag = false;
                 serverState.recordMapperPoints = false;
