@@ -14,7 +14,7 @@ var execSync = require('child_process').execSync;
 
 const rosnodejs = require('rosnodejs');
 const std_msgs = rosnodejs.require('std_msgs').msg;
-const sbg_driver = rosnodejs.require('sbg_driver').msg;
+const sbg_driver_msgs = rosnodejs.require('sbg_driver').msg;
 const sensor_msgs = rosnodejs.require('sensor_msgs').msg;
 
 var psTree = require('ps-tree');
@@ -70,6 +70,8 @@ var clientRequest = {
     recordBag: false,
     RTKprocess: true,
     PPKprocess: false,
+    timer: "OFF",
+    timerSec: 0,
 };
 
 let childRoscore;
@@ -368,7 +370,7 @@ function ros_topics_listener() {
         //================= Check if sensors data are ready ======================
         //========================================================================
 
-        let ekf_nav_sub = rosNode.subscribe('/ekf_nav', sbg_driver.SbgEkfNav,
+        let ekf_nav_sub = rosNode.subscribe('/ekf_nav', sbg_driver_msgs.SbgEkfNav,
           (data) => { 
         
             if(data.status.gps1_pos_used && !serverState.gpsPositionOK && serverState.processRunning){
@@ -391,7 +393,7 @@ function ros_topics_listener() {
           }
         );
 
-        let ppk_quat_sub = rosNode.subscribe('/ppk_quat', sbg_driver.SbgEkfQuat,
+        let ppk_quat_sub = rosNode.subscribe('/ppk_quat', sbg_driver_msgs.SbgEkfQuat,
           (data) => {
             if(!serverState.PPKQuatOK && serverState.processRunning){
                 serverState.PPKQuatOK = true;
@@ -439,6 +441,12 @@ const processStartCallback = (data, socket) => {
 
         pushFeedMessage({"text": "PROCESS STARTED for "+ clientRequest.projectName +""});
         serverState.processRunning = true;
+        
+        if(clientRequest.timer === "ON"){
+            setTimeout( ()=>{
+                io.emit("processStart", false);
+            },clientRequest.timerSec*1000);
+        }
      
     }else{
 

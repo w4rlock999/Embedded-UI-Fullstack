@@ -7,4 +7,4 @@ Step to install:
 2. Install yarn
 3. Install nodemon "sudo npm i nodemon -g" 
 4. Clone this repo
-5.  
+5. npm install on / and /src/ 

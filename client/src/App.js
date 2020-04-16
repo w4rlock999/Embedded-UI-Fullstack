@@ -137,9 +137,11 @@ let socket;
 let childState = {
   projectName: "projectName",
   saveTo: "~/simpanBag/",
-  recordBag: false,
+  recordBag: true,
   RTKprocess: true,
   PPKprocess: false,
+  timer: "OFF",
+  timerSec: 0,
 }; 
 
 var statuses = [];
@@ -198,9 +200,10 @@ class App extends React.Component {
     // socket.emit("processStart", true);
     // this.setState({ startDialogOpen: false});  
     // };    
-    socket.emit("clientRequest", childState);
-    socket.emit("processStart", true);
-    this.setState({ startDialogOpen: false});    
+    socket.emit("clientRequest", childState, () => {
+      socket.emit("processStart", true);
+      this.setState({ startDialogOpen: false});
+    });    
   };
 
   startDialogCloseHandler = () => {
