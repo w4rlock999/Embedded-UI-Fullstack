@@ -189,7 +189,7 @@ io.on("connection", socket => {
     //======================= Main Process Handler =====================================
     //==================================================================================
 
-    socket.on("clientRequest", data => { clientRequestCallback(data, socket) });
+    socket.on("clientRequest", (data,callback) => { clientRequestCallback(data,callback,socket) });
     socket.on("processStart", data => { processStartCallback(data, socket) });
 
 
@@ -412,7 +412,7 @@ function ros_topics_listener() {
       });
 };
 
-const clientRequestCallback = (data, socket) => {
+const clientRequestCallback = (data, callback, socket) => {
     clientRequest = data;
     processLog(`params received`);
 
@@ -421,6 +421,8 @@ const clientRequestCallback = (data, socket) => {
     processLog(`record bag ${clientRequest.recordBag}`);
     processLog(`RTK mapping ${clientRequest.RTKprocess}`);
     processLog(`PPK mapping ${clientRequest.PPKprocess}`);
+
+    callback(false);
 }
 
 const processStartCallback = (data, socket) => {

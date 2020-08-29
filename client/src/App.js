@@ -205,15 +205,17 @@ class App extends React.Component {
     // socket.emit("clientRequest", childState);
     // socket.emit("processStart", true);
     // this.setState({ startDialogOpen: false});  
-    // };    
-    socket.emit("clientRequest", childState, () => {
+    // };
+  
+    socket.emit("clientRequest", childState, (value) => {
       socket.emit("processStart", true);
-      this.setState({ startDialogOpen: false});
+      this.setState({ startDialogOpen: value});
     });    
   };
 
   startDialogCloseHandler = () => {
     this.setState({ startDialogOpen: false});
+    // console.log("button pressed ");
   };
   
   powerDialogCloseHandler = () => {
@@ -523,7 +525,7 @@ class App extends React.Component {
             <ButtonUI onClick={this.startDialogCloseHandler} color="primary">
               Cancel
             </ButtonUI>
-              <DialogButton onClick={this.startDialogClickHandler}/>
+            <DialogButton onClick={this.startDialogClickHandler}/>
           </DialogActions>
         </Dialog>
 
