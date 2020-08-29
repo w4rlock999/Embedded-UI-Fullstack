@@ -149,6 +149,12 @@ var projectFolders = [];
 var removableDiskStatus = false;
 var removableDiskObject = {};
 
+var endpointVariable = "http://localhost:5000";
+
+if(process.env.NODE_ENV === "production"){
+  endpointVariable = "http://100.100.0.1:5000";
+}
+
 class App extends React.Component {
 
   state = {
@@ -157,7 +163,7 @@ class App extends React.Component {
     startDialogOpen: false,
     stopDialogOpen: false,
     powerDialogOpen: false,
-    endpoint: "http://localhost:5000",    //TO SET SERVER ADDRESS TODO set to node_env
+    endpoint: endpointVariable,    //TO SET SERVER ADDRESS TODO set to node_env
     drawer: "mapping",
     magnetoCalib: "not ready",
     magnetoCalibAccuracy: "no accuracy data",
